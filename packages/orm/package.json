@@ -31,5 +31,14 @@
   "license": "MIT",
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "@faberjs/core": "workspace:*",
+    "knex": "^3.1.0",
+    "reflect-metadata": "^0.2.0"
+  },
+  "devDependencies": {
+    "better-sqlite3": "^9.4.0",
+    "@types/better-sqlite3": "^7.6.8"
   }
 }
