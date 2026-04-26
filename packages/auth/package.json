@@ -1,0 +1,35 @@
+{
+  "name": "@forgejs/auth",
+  "version": "0.0.1",
+  "description": "ForgeJS JWT-based authentication guards and authorization policies",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "keywords": [
+    "forgejs",
+    "framework",
+    "auth",
+    "jwt",
+    "authorization",
+    "policies"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}
