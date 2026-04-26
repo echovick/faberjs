@@ -31,5 +31,8 @@
   "license": "MIT",
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "@faberjs/core": "workspace:*"
   }
 }

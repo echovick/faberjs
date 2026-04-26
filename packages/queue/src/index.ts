@@ -1,2 +1,2 @@
-// /queue — Background job dispatching and queue workers via BullMQ
-export {};
+export { dispatch } from './dispatch';
+export type { JobContract, QueueContract } from './types';

@@ -1,6 +1,6 @@
 import type { Constructor } from '@faberjs/core';
 import type { ControllerAction, HttpMethod, RouteDefinition, RouterContract } from '@faberjs/http';
-import { Route, makeRouteDefinition } from './route';
+import { RouteBuilder, makeRouteDefinition } from './route-builder';
 import type { ResolvedGroup, RouteGroupOptions } from './types';
 
 const RESOURCE_ACTIONS = ['index', 'store', 'show', 'update', 'destroy'] as const;
@@ -19,23 +19,23 @@ export class Router implements RouterContract {
   private readonly namedRoutes = new Map<string, RouteDefinition>();
   private readonly groupStack: ResolvedGroup[] = [];
 
-  get(path: string, handler: ControllerAction): Route {
+  get(path: string, handler: ControllerAction): RouteBuilder {
     return this.addRoute('GET', path, handler);
   }
 
-  post(path: string, handler: ControllerAction): Route {
+  post(path: string, handler: ControllerAction): RouteBuilder {
     return this.addRoute('POST', path, handler);
   }
 
-  put(path: string, handler: ControllerAction): Route {
+  put(path: string, handler: ControllerAction): RouteBuilder {
     return this.addRoute('PUT', path, handler);
   }
 
-  patch(path: string, handler: ControllerAction): Route {
+  patch(path: string, handler: ControllerAction): RouteBuilder {
     return this.addRoute('PATCH', path, handler);
   }
 
-  delete(path: string, handler: ControllerAction): Route {
+  delete(path: string, handler: ControllerAction): RouteBuilder {
     return this.addRoute('DELETE', path, handler);
   }
 
@@ -67,13 +67,13 @@ export class Router implements RouterContract {
     return this.namedRoutes.get(name);
   }
 
-  private addRoute(method: HttpMethod, path: string, handler: ControllerAction): Route {
+  private addRoute(method: HttpMethod, path: string, handler: ControllerAction): RouteBuilder {
     const group = this.currentGroup();
     const fullPath = group.prefix + path;
     const definition = makeRouteDefinition(method, fullPath, handler, group.middleware);
     this.routes.push(definition);
 
-    return new Route(definition, (routeName, def) => {
+    return new RouteBuilder(definition, (routeName, def) => {
       const qualifiedName = group.name + routeName;
       this.namedRoutes.set(qualifiedName, def);
     });

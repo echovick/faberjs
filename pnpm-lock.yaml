@@ -80,7 +80,11 @@ importers:
         specifier: ^0.2.0
         version: 0.2.2
 
-  packages/events: {}
+  packages/events:
+    dependencies:
+      '@faberjs/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/http:
     dependencies:
@@ -93,7 +97,11 @@ importers:
 
   packages/orm: {}
 
-  packages/queue: {}
+  packages/queue:
+    dependencies:
+      '@faberjs/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/router:
     dependencies:
