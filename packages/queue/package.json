@@ -33,6 +33,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@faberjs/core": "workspace:*"
+    "@faberjs/core": "workspace:*",
+    "bullmq": "^5.12.0"
+  },
+  "devDependencies": {
+    "ioredis-mock": "^8.9.0",
+    "@types/ioredis-mock": "^8.2.5"
   }
 }

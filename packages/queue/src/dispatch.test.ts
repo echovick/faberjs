@@ -29,7 +29,11 @@ describe('dispatch()', () => {
 
     beforeEach(() => {
       const app = new Application();
-      mockQueue = { dispatch: vi.fn().mockResolvedValue(undefined) };
+      mockQueue = {
+        dispatch: vi.fn().mockResolvedValue(undefined),
+        dispatchChain: vi.fn().mockResolvedValue(undefined),
+        dispatchWithDelay: vi.fn().mockResolvedValue(undefined),
+      };
       app.instance('queue', mockQueue);
     });
 
