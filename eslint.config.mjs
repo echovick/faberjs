@@ -50,6 +50,9 @@ export default tseslint.config(
       // prefer-nullish-coalescing and prefer-optional-chain require type-aware
       // parsing; enable them by adding parserOptions.project if needed later.
       '@typescript-eslint/no-non-null-assertion': 'warn',
+      // Allow empty bodies on override methods (service provider lifecycle hooks,
+      // test stubs, etc.) — these are intentionally no-ops.
+      '@typescript-eslint/no-empty-function': ['error', { allow: ['overrideMethods'] }],
 
       // General quality
       'no-console': 'warn',
