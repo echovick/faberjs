@@ -32,6 +32,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@faberjs/core": "workspace:*"
+    "@faberjs/core": "workspace:*",
+    "@faberjs/queue": "workspace:*"
   }
 }

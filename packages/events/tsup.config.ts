@@ -6,4 +6,5 @@ export default defineConfig({
   dts: true,
   clean: true,
   sourcemap: true,
+  external: ['reflect-metadata', '@faberjs/core', '@faberjs/queue'],
 });

@@ -101,6 +101,9 @@ importers:
       '@faberjs/core':
         specifier: workspace:*
         version: link:../core
+      '@faberjs/queue':
+        specifier: workspace:*
+        version: link:../queue
 
   packages/http:
     dependencies:
