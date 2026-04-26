@@ -1,2 +1,2 @@
-// /console — Forge CLI: code generation, migration runner, queue worker, REPL
-export {};
+export { Command } from './command';
+export type { CommandMeta, GeneratorOptions, RouteEntry, MigrationStatus } from './types';
