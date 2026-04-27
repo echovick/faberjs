@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Application } from '@faberjs/core';
+import { ForbiddenException } from '@faberjs/http';
 import type { Response } from '@faberjs/http';
+import type { AuthUser } from '@faberjs/http';
 import { Controller } from './controller';
 
 class TestController extends Controller {
@@ -11,6 +14,9 @@ class TestController extends Controller {
   }
   makeNoContent(): Response {
     return this.noContent();
+  }
+  async tryAuthorize(user: AuthUser | null, ability: string, model?: unknown): Promise<void> {
+    return this.authorize(user, ability, model);
   }
 }
 
@@ -46,6 +52,35 @@ describe('Controller', () => {
   describe('noContent()', () => {
     it('returns a 204 response', () => {
       expect(ctrl.makeNoContent().getStatus()).toBe(204);
+    });
+  });
+
+  describe('authorize()', () => {
+    let app: Application;
+
+    beforeEach(() => {
+      app = new Application();
+    });
+
+    afterEach(() => {
+      Application.clearInstance();
+    });
+
+    it('resolves without throwing when gate allows the action', async () => {
+      app.instance('gate', { allows: vi.fn().mockResolvedValue(true) });
+      const user: AuthUser = { id: 1 };
+      await expect(ctrl.tryAuthorize(user, 'update', {})).resolves.toBeUndefined();
+    });
+
+    it('throws ForbiddenException when gate denies the action', async () => {
+      app.instance('gate', { allows: vi.fn().mockResolvedValue(false) });
+      const user: AuthUser = { id: 1 };
+      await expect(ctrl.tryAuthorize(user, 'update', {})).rejects.toThrow(ForbiddenException);
+    });
+
+    it('throws ForbiddenException when user is null', async () => {
+      app.instance('gate', { allows: vi.fn().mockResolvedValue(false) });
+      await expect(ctrl.tryAuthorize(null, 'update', {})).rejects.toThrow(ForbiddenException);
     });
   });
 });

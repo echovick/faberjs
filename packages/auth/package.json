@@ -31,5 +31,10 @@
   "license": "MIT",
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "@faberjs/core": "workspace:*",
+    "@faberjs/http": "workspace:*",
+    "jose": "^5.9.6"
   }
 }
