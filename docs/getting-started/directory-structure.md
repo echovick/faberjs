@@ -96,7 +96,7 @@ database/
 └── seeders/        ← database seeders
 ```
 
-Migration files are discovered automatically by `faber db migrate` in chronological order.
+Migration files are discovered automatically by `faber db:migrate` in chronological order.
 
 ## `routes/`
 

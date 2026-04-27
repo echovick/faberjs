@@ -36,9 +36,9 @@ export default class CreatePostsTable extends Migration {
 ## Running migrations
 
 ```bash
-faber db migrate      # run all pending migrations
-faber db rollback     # roll back the last batch
-faber db status       # show migration status
+faber db:migrate      # run all pending migrations
+faber db:rollback     # roll back the last batch
+faber db:status       # show migration status
 ```
 
 Migrations run in chronological order based on the timestamp in the filename. Each batch is tracked so `rollback` knows which migrations to reverse together.
@@ -181,5 +181,5 @@ faber make:migration seed_users   # convention: prefix with seed_
 Or write a seeder class manually in `database/seeders/` and run it:
 
 ```bash
-faber db seed
+faber db:seed
 ```

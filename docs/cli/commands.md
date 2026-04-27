@@ -35,12 +35,12 @@ The server reads your `bootstrap/app.ts` file and re-starts automatically on cha
 
 ## Database commands
 
-### `faber db migrate`
+### `faber db:migrate`
 
 Run all pending migrations in chronological order. Each migration batch is tracked so rollback knows which files to reverse.
 
 ```bash
-faber db migrate
+faber db:migrate
 ```
 
 Output:
@@ -52,20 +52,20 @@ Migrating: 2024_01_02_120000_create_posts_table
 Migrated:  2024_01_02_120000_create_posts_table (11ms)
 ```
 
-### `faber db rollback`
+### `faber db:rollback`
 
 Roll back the last batch of migrations by running each `down()` method.
 
 ```bash
-faber db rollback
+faber db:rollback
 ```
 
-### `faber db status`
+### `faber db:status`
 
 Show which migrations have run and which are pending.
 
 ```bash
-faber db status
+faber db:status
 ```
 
 Output:
@@ -77,12 +77,12 @@ Ran                                                   Batch
 ✗ 2024_01_03_090000_add_bio_to_users_table           -
 ```
 
-### `faber db seed`
+### `faber db:seed`
 
 Run all database seeders found in `database/seeders/`.
 
 ```bash
-faber db seed
+faber db:seed
 ```
 
 ---
@@ -271,10 +271,10 @@ FaberJS Tinker — application ready
 | Command                        | Description                                   |
 | ------------------------------ | --------------------------------------------- |
 | `faber serve`                  | Start the dev server (hot reload)             |
-| `faber db migrate`             | Run pending migrations                        |
-| `faber db rollback`            | Roll back the last migration batch            |
-| `faber db status`              | Show migration status                         |
-| `faber db seed`                | Run database seeders                          |
+| `faber db:migrate`             | Run pending migrations                        |
+| `faber db:rollback`            | Roll back the last migration batch            |
+| `faber db:status`              | Show migration status                         |
+| `faber db:seed`                | Run database seeders                          |
 | `faber make:controller <Name>` | Generate a controller                         |
 | `faber make:model <Name> [-m]` | Generate a model (and optionally a migration) |
 | `faber make:service <Name>`    | Generate a service                            |

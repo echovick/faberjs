@@ -54,7 +54,7 @@ Install dependencies, run migrations, and start the dev server:
 
 ```bash
 pnpm install
-faber db migrate
+faber db:migrate
 faber serve
 ```
 
