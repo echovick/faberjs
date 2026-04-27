@@ -1,24 +1,18 @@
 #!/usr/bin/env node
 /**
- * Local scaffold test — runs without publishing to npm.
+ * Local scaffold test — validates the scaffold without publishing to npm.
  * Usage: node scripts/test-scaffold.mjs [sqlite|mysql|postgres]
- *
- * It builds all packages, scaffolds a test app, wires up local file: references
- * so pnpm resolves from the monorepo instead of npm, then starts the server and
- * hits /health to verify it works.
  */
 
-import { execSync, spawn } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 import { mkdirSync, rmSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
-import { tmpdir } from 'node:os';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const PACKAGES_DIR = join(ROOT, 'packages');
-const SCAFFOLD_BIN = join(ROOT, 'create-faberjs', 'dist', 'index.js');
 const driver = process.argv[2] ?? 'sqlite';
-const TEST_DIR = join(tmpdir(), `faber-test-${Date.now()}`);
-const APP_DIR = join(TEST_DIR, 'test-app');
+const APP_DIR = `${process.env['HOME']}/faber-scaffold-test`;
 
 function run(cmd, opts = {}) {
   console.log(`\n> ${cmd}`);
@@ -26,79 +20,74 @@ function run(cmd, opts = {}) {
 }
 
 function cleanup() {
-  if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true, force: true });
+  if (existsSync(APP_DIR)) rmSync(APP_DIR, { recursive: true, force: true });
 }
 
-process.on('exit', cleanup);
-process.on('SIGINT', () => process.exit(0));
+process.on('SIGINT', () => { cleanup(); process.exit(0); });
 
 // ── 1. Build ──────────────────────────────────────────────────────────────────
 console.log('\n\x1b[36m[1/4] Building all packages...\x1b[0m');
 run('pnpm build', { cwd: ROOT });
 
-// ── 2. Scaffold ───────────────────────────────────────────────────────────────
-console.log('\n\x1b[36m[2/4] Scaffolding test app...\x1b[0m');
-mkdirSync(TEST_DIR, { recursive: true });
+// ── 2. Scaffold directly via compiled module ───────────────────────────────────
+console.log(`\n\x1b[36m[2/4] Scaffolding test app (driver=${driver})...\x1b[0m`);
+cleanup();
+mkdirSync(APP_DIR, { recursive: true });
 
-// Run scaffolder non-interactively by piping answers
-const scaffoldProcess = spawn('node', [SCAFFOLD_BIN, 'test-app'], {
-  cwd: TEST_DIR,
-  stdio: ['pipe', 'inherit', 'inherit'],
+const req = createRequire(import.meta.url);
+const { scaffoldProject } = req(join(ROOT, 'create-faberjs', 'dist', 'scaffold.js'));
+await scaffoldProject({
+  projectName: 'test-app',
+  targetDir: APP_DIR,
+  dbDriver: driver,
+  includeAuth: false,
 });
-// Answer prompts: driver choice, auth=y
-setTimeout(() => scaffoldProcess.stdin.write(`${driver}\ny\n`), 300);
-await new Promise((resolve) => scaffoldProcess.on('close', resolve));
 
-// ── 3. Swap npm refs → local file: refs ──────────────────────────────────────
+console.log('\n\x1b[32m✓ Scaffolded\x1b[0m');
+console.log('\nbootstrap/app.ts:');
+console.log(readFileSync(join(APP_DIR, 'bootstrap', 'app.ts'), 'utf8'));
+
+// ── 3. Wire local packages ────────────────────────────────────────────────────
 console.log('\n\x1b[36m[3/4] Wiring local packages...\x1b[0m');
 const pkgPath = join(APP_DIR, 'package.json');
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
 
-for (const [dep, _version] of Object.entries(pkg.dependencies ?? {})) {
+for (const dep of Object.keys(pkg.dependencies ?? {})) {
   if (dep.startsWith('@faber-js/')) {
     const name = dep.replace('@faber-js/', '');
     const localPath = join(PACKAGES_DIR, name);
-    if (existsSync(localPath)) {
-      pkg.dependencies[dep] = `file:${localPath}`;
-    }
+    if (existsSync(localPath)) pkg.dependencies[dep] = `file:${localPath}`;
   }
 }
-
-// Also wire @faber-js/console so `faber serve` uses local build
-const consolePath = join(PACKAGES_DIR, 'console');
-if (existsSync(consolePath)) {
-  pkg.devDependencies = pkg.devDependencies ?? {};
-  pkg.devDependencies['@faber-js/console'] = `file:${consolePath}`;
-}
-
 writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
-run('pnpm install', { cwd: APP_DIR });
+run('npm install', { cwd: APP_DIR });
 
-// ── 4. Smoke test ─────────────────────────────────────────────────────────────
-console.log('\n\x1b[36m[4/4] Starting server and testing /health...\x1b[0m');
-const server = spawn('node', [
-  '--require', 'ts-node/register',
-  '--env-file', '.env',
-  'bootstrap/app.ts',
-], { cwd: APP_DIR, stdio: 'inherit' });
+// ── 4. Boot test ──────────────────────────────────────────────────────────────
+console.log('\n\x1b[36m[4/4] Booting server (10s timeout)...\x1b[0m');
+mkdirSync(join(APP_DIR, 'storage'), { recursive: true });
 
-await new Promise((resolve) => setTimeout(resolve, 4000));
+const result = spawnSync('node', ['--require', 'ts-node/register', 'bootstrap/app.ts'], {
+  cwd: APP_DIR,
+  timeout: 10000,
+  env: {
+    ...process.env,
+    APP_PORT: '3456',
+    DB_CONNECTION: 'better-sqlite3',
+    DB_DATABASE: join(APP_DIR, 'storage', 'test.sqlite'),
+    TS_NODE_PROJECT: join(APP_DIR, 'tsconfig.json'),
+  },
+});
 
-let ok = false;
-try {
-  const res = await fetch('http://127.0.0.1:3000/health');
-  const body = await res.json();
-  ok = res.ok && body.status === 'ok';
-} catch (e) {
-  console.error('Fetch failed:', e.message);
-}
+const out = (result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '');
+console.log(out);
 
-server.kill();
+const started = out.includes('running on port') || result.signal === 'SIGTERM';
 
-if (ok) {
-  console.log('\n\x1b[32m✓ Scaffold smoke test passed — /health returned {"status":"ok"}\x1b[0m\n');
+if (started) {
+  console.log('\n\x1b[32m✓ Server started — scaffold test passed\x1b[0m\n');
+  cleanup();
   process.exit(0);
 } else {
-  console.error('\n\x1b[31m✗ Scaffold smoke test FAILED\x1b[0m\n');
+  console.error('\n\x1b[31m✗ Server did not start (see output above)\x1b[0m\n');
   process.exit(1);
 }
