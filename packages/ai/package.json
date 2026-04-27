@@ -1,0 +1,42 @@
+{
+  "name": "@faberjs/ai",
+  "version": "0.0.1",
+  "description": "FaberJS AI-native agent scaffolding — Agent base, @Tool decorator, streaming, memory",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "keywords": [
+    "faberjs",
+    "framework",
+    "ai",
+    "agents",
+    "claude",
+    "anthropic",
+    "llm"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@faberjs/core": "workspace:*",
+    "@faberjs/http": "workspace:*",
+    "reflect-metadata": "^0.2.0"
+  }
+}

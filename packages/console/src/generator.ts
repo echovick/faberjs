@@ -79,6 +79,7 @@ export function generateFile(
     middleware: join(cwd, 'app', 'middleware'),
     command: join(cwd, 'app', 'commands'),
     provider: join(cwd, 'app', 'providers'),
+    agent: join(cwd, 'app', 'agents'),
   };
 
   const dir = dirMap[type];
@@ -95,6 +96,7 @@ export function generateFile(
     middleware: `${pascal}Middleware.ts`,
     command: `${pascal}Command.ts`,
     provider: `${pascal}ServiceProvider.ts`,
+    agent: `${pascal}Agent.ts`,
   };
 
   const fileName = fileNameMap[type] ?? `${pascal}.ts`;

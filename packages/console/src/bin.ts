@@ -142,6 +142,15 @@ make
     process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
   });
 
+make
+  .command('agent <name>')
+  .description('Create a new AI agent')
+  .action((name: string) => {
+    const result = generateFile('agent', name, cwd);
+    writeGeneratedFile(result);
+    process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
+  });
+
 // ── db:* commands ──────────────────────────────────────────────────
 
 const db = program.command('db').description('Database management commands');

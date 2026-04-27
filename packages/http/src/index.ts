@@ -5,6 +5,7 @@ export {
   ForbiddenException,
   ValidationException,
   ModelNotFoundException,
+  TooManyRequestsException,
 } from './exceptions';
 export { HttpKernel } from './kernel';
 export { Pipeline } from './pipeline';

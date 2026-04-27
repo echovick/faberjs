@@ -120,4 +120,19 @@ export class {{Name}}ServiceProvider extends ServiceProvider {
   }
 }
 `,
+
+  agent: `import { Injectable } from '@faberjs/core';
+import { Agent, Tool } from '@faberjs/ai';
+
+@Injectable()
+export class {{Name}}Agent extends Agent {
+  override model = 'claude-sonnet-4-6';
+  override systemPrompt = 'You are a helpful assistant.';
+
+  @Tool({ description: 'Example tool — replace with your own' })
+  async exampleTool(_input: Record<string, unknown>): Promise<string> {
+    return 'result';
+  }
+}
+`,
 };

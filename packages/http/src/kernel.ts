@@ -111,9 +111,17 @@ export class HttpKernel implements HttpKernelContract {
     const body = res.getBody();
     if (body === null) {
       await reply.status(res.getStatus()).send();
-    } else {
-      await reply.status(res.getStatus()).send(body);
+      return;
     }
+
+    if (typeof body === 'object' && body !== null && Symbol.asyncIterator in body) {
+      const { Readable } = await import('node:stream');
+      const readable = Readable.from(body as AsyncIterable<string>);
+      await reply.status(res.getStatus()).send(readable);
+      return;
+    }
+
+    await reply.status(res.getStatus()).send(body);
   }
 
   private async handleError(reply: FastifyReply, error: unknown): Promise<void> {

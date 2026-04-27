@@ -35,6 +35,14 @@ export class Response {
     return new Response({ body: null, status, headers: { location: url } });
   }
 
+  static stream(source: AsyncIterable<string>, status = 200): Response {
+    return new Response({
+      body: source,
+      status,
+      headers: { 'content-type': 'text/plain; charset=utf-8', 'x-content-type-options': 'nosniff' },
+    });
+  }
+
   getStatus(): number {
     return this.#status;
   }

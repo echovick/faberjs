@@ -41,3 +41,9 @@ export class ModelNotFoundException extends HttpException {
     super(`No query results for model [${model}].`, 404);
   }
 }
+
+export class TooManyRequestsException extends HttpException {
+  constructor(message = 'Too Many Requests') {
+    super(message, 429);
+  }
+}
