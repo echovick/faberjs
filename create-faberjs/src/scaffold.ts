@@ -319,6 +319,66 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
       `  },`,
       `};`,
     ].join('\n'),
+
+    // ── AI coding agent context files ──────────────────────────
+
+    'CLAUDE.md': buildClaudeMd(projectName),
+
+    '.cursorrules': buildCursorRules(),
+
+    '.github/copilot-instructions.md': buildCopilotInstructions(),
+
+    '.mcp.json': JSON.stringify(
+      {
+        mcpServers: {
+          faberjs: {
+            command: 'npx',
+            args: ['-y', '@faber-js/mcp'],
+          },
+        },
+      },
+      null,
+      2,
+    ),
+
+    // ── Claude Code skills ─────────────────────────────────────
+
+    '.claude/commands/make.md': [
+      `Generate a FaberJS file using the faber CLI.`,
+      ``,
+      `Usage: /make <type> <Name>`,
+      ``,
+      `Examples:`,
+      `  /make controller PostController`,
+      `  /make model Post -m`,
+      `  /make service PostService`,
+      `  /make job SendWelcomeEmail`,
+      `  /make event UserRegistered`,
+      `  /make listener SendWelcomeEmailListener`,
+      `  /make migration CreatePostsTable`,
+      ``,
+      `Run the appropriate \`npx faber make:<type> <Name>\` command based on the user's request.`,
+      `For model with -m flag, run \`npx faber make:model <Name> -m\`.`,
+      `After running, show the user which files were created.`,
+    ].join('\n'),
+
+    '.claude/commands/migrate.md': [
+      `Run FaberJS database migrations.`,
+      ``,
+      `Run: npx faber db:migrate`,
+      ``,
+      `Show the output. If the migration fails, read the failing migration file`,
+      `and explain what went wrong and how to fix it.`,
+    ].join('\n'),
+
+    '.claude/commands/rollback.md': [
+      `Rollback the last batch of FaberJS database migrations.`,
+      ``,
+      `Before running, confirm with the user that they want to rollback.`,
+      `Then run: npx faber db:rollback`,
+      ``,
+      `Show the output and list which migrations were rolled back.`,
+    ].join('\n'),
   };
 }
 
@@ -408,6 +468,301 @@ function buildDbConfig(driver: ScaffoldOptions['dbDriver']): {
       `    },`,
     ],
   };
+}
+
+function buildClaudeMd(projectName: string): string {
+  return `# ${projectName} — FaberJS Project
+
+FaberJS is a full-featured, opinionated Node.js/TypeScript backend framework that mirrors the Laravel developer experience. This project was scaffolded with \`create-faberjs\`.
+
+## MCP Integration
+
+This project ships with \`.mcp.json\` — Claude Code will auto-connect the \`@faber-js/mcp\` server, giving you tools to generate files, run migrations, and search docs directly from the agent.
+
+Available MCP tools:
+- \`faber_docs\` — search framework API docs
+- \`faber_make\` — generate controllers, models, services, jobs, etc.
+- \`faber_migrate\` / \`faber_rollback\` / \`faber_db_status\` — database
+- \`faber_route_list\` — list all registered routes
+
+## Project Structure
+
+\`\`\`
+app/
+  controllers/   HTTP controllers — extend Controller, decorate @Injectable()
+  models/        ORM models — extend Model, define static table + fillable
+  services/      Business logic — extend Service, decorate @Injectable()
+  jobs/          Queue jobs — extend Job, implement handle()
+  events/        Event classes — extend Event
+  listeners/     Event listeners — extend Listener, decorate @ListenFor()
+  policies/      Auth policies — extend Policy
+  providers/     Service providers — extend ServiceProvider
+  commands/      Custom CLI commands — extend Command
+bootstrap/app.ts Application entry — registers providers, loads routes
+config/          Typed config files
+database/migrations/ Migration files
+routes/api.ts    Route definitions
+\`\`\`
+
+## Core Flow
+
+Route → Controller → Service → Model → Job/Event
+
+## Package APIs
+
+### Routing (@faber-js/router)
+
+\`\`\`typescript
+import { Route } from '@faber-js/router';
+
+Route.get('/posts', [PostController, 'index']);
+Route.post('/posts', [PostController, 'store']);
+Route.get('/posts/:id', [PostController, 'show']);
+Route.put('/posts/:id', [PostController, 'update']);
+Route.delete('/posts/:id', [PostController, 'destroy']);
+
+Route.group({ prefix: '/api/v1', middleware: ['auth'] }, () => {
+  Route.resource('posts', PostController);
+});
+\`\`\`
+
+### Controllers (@faber-js/router)
+
+\`\`\`typescript
+import { Injectable } from '@faber-js/core';
+import { Controller } from '@faber-js/router';
+import type { Request } from '@faber-js/http';
+import { Response } from '@faber-js/http';
+
+@Injectable()
+export class PostController extends Controller {
+  constructor(private readonly posts: PostService) { super(); }
+
+  async index(_req: Request): Promise<Response> {
+    return this.json({ data: await this.posts.all() });
+  }
+
+  async store(req: Request): Promise<Response> {
+    const post = await this.posts.create(req.validated());
+    return this.json({ data: post }, 201);
+  }
+
+  async show(req: Request): Promise<Response> {
+    return this.json({ data: await this.posts.find(Number(req.route('id'))) });
+  }
+
+  async destroy(req: Request): Promise<Response> {
+    await this.posts.delete(Number(req.route('id')));
+    return this.noContent();
+  }
+}
+\`\`\`
+
+Request methods: \`req.route(param)\`, \`req.query(key, default?)\`, \`req.input(key)\`, \`req.all()\`, \`req.validated()\`, \`req.user<T>()\`
+
+### ORM Models (@faber-js/orm)
+
+\`\`\`typescript
+import { Model } from '@faber-js/orm';
+
+export class Post extends Model {
+  static table = 'posts';
+  static fillable = ['title', 'body', 'author_id'];
+
+  author() { return this.belongsTo(User, 'author_id'); }
+  comments() { return this.hasMany(Comment, 'post_id'); }
+
+  scopePublished(query: any) {
+    return query.where('published', true).orderBy('created_at', 'desc');
+  }
+}
+
+// Queries
+await Post.all<Post>();
+await Post.find<Post>(id);
+await Post.where('published', true).with('author', 'tags').paginate(1, 15);
+await Post.create<Post>(data);
+await post.update({ title: 'New' });
+await post.delete();
+\`\`\`
+
+### Queues & Jobs (@faber-js/queue)
+
+\`\`\`typescript
+import { dispatch } from '@faber-js/queue';
+import { Job } from '@faber-js/queue';
+
+// Dispatch
+await dispatch(new SendWelcomeEmail(user));
+await dispatch(new ProcessPayment(order)).onQueue('payments').delay(60);
+
+// Job class
+export class SendWelcomeEmail extends Job {
+  constructor(public readonly user: User) { super(); }
+  async handle(): Promise<void> { /* ... */ }
+}
+\`\`\`
+
+### Events & Listeners (@faber-js/events)
+
+\`\`\`typescript
+import { event } from '@faber-js/events';
+import { Event, Listener, ListenFor } from '@faber-js/events';
+
+await event(new UserRegistered(user));
+
+export class UserRegistered extends Event {
+  constructor(public readonly user: User) { super(); }
+}
+
+@ListenFor(UserRegistered)
+export class SendWelcomeEmailListener extends Listener {
+  async handle(e: UserRegistered): Promise<void> {
+    await dispatch(new SendWelcomeEmail(e.user));
+  }
+}
+\`\`\`
+
+### Auth (@faber-js/auth)
+
+\`\`\`typescript
+Route.group({ middleware: ['auth'] }, () => { /* protected routes */ });
+const user = req.user<User>();
+await this.authorize('update', post);  // throws 403 if denied
+\`\`\`
+
+### Validation (@faber-js/validation)
+
+\`\`\`typescript
+export class CreatePostRequest extends FormRequest {
+  rules() {
+    return { title: 'required|string|min:3', body: 'required|string' };
+  }
+}
+// In controller: const data = req.validated();  — auto 422 on failure
+\`\`\`
+
+## CLI Commands
+
+\`\`\`bash
+npx faber make:controller PostController
+npx faber make:model Post -m          # -m creates migration too
+npx faber make:service PostService
+npx faber make:job SendWelcomeEmail
+npx faber make:event UserRegistered
+npx faber make:listener SendWelcomeEmailListener
+npx faber make:migration CreatePostsTable
+npx faber db:migrate
+npx faber db:rollback
+npx faber serve
+npx faber route:list
+\`\`\`
+
+## Anti-Patterns
+
+- NEVER import from \`fastify\` or \`knex\` directly
+- NEVER instantiate services with \`new\` — use constructor injection
+- NEVER skip \`reflect-metadata\` import in bootstrap/app.ts
+- NEVER use \`req.body\` directly — use \`req.validated()\` or \`req.input()\`
+- NEVER write \`@Injectable()\` on Model or Service subclasses — only on Controllers
+`;
+}
+
+function buildCursorRules(): string {
+  return `# FaberJS Cursor Rules
+
+You are working in a FaberJS project — a Laravel-inspired Node.js/TypeScript backend framework.
+
+## Core Rules
+
+- Framework flow: Route → Controller → Service → Model → Job/Event
+- Never import from fastify or knex — all code uses @faber-js/* packages
+- Never instantiate services manually — always use constructor injection
+- Controllers extend Controller and need @Injectable()
+- Services extend Service and need @Injectable()
+- Models extend Model — no decorator needed
+- Jobs extend Job, implement async handle()
+- Events extend Event, Listeners extend Listener with @ListenFor(EventClass)
+
+## Key APIs
+
+Routing: Route.get/post/put/patch/delete(path, [Controller, 'method'])
+Groups: Route.group({ prefix, middleware }, () => { ... })
+Request: req.route(param), req.query(key), req.input(key), req.validated(), req.user<T>()
+Response: this.json(data, status?), this.noContent()
+ORM: Model.all(), Model.find(id), Model.where(col, val).with(rel).paginate(page, per)
+Dispatch: await dispatch(new MyJob(data))
+Events: await event(new MyEvent(data))
+Auth: Route.middleware('auth').group(...), req.user<T>(), this.authorize('ability', model)
+Validation: class MyRequest extends FormRequest { rules() { return { field: 'required|string' } } }
+
+## CLI
+
+npx faber make:controller|model|service|job|event|listener|migration|provider|command|agent
+npx faber db:migrate | db:rollback | db:status
+npx faber serve | route:list | tinker
+
+## File Locations
+
+Controllers: app/controllers/
+Models: app/models/
+Services: app/services/
+Jobs: app/jobs/
+Events: app/events/
+Listeners: app/listeners/
+Migrations: database/migrations/
+Routes: routes/api.ts
+Bootstrap: bootstrap/app.ts
+`;
+}
+
+function buildCopilotInstructions(): string {
+  return `# FaberJS Copilot Instructions
+
+This is a FaberJS project — a Laravel-inspired Node.js/TypeScript backend framework.
+
+## Framework Conventions
+
+- All packages are under @faber-js/* — never import from fastify or knex directly
+- Framework flow: Route → Controller → Service → Model → Job/Event
+- Controllers: extend Controller, decorate @Injectable(), inject services via constructor
+- Services: extend Service, decorate @Injectable(), contain business logic
+- Models: extend Model, define static table and fillable, use ActiveRecord methods
+- Jobs: extend Job, implement async handle(), dispatched with dispatch(new MyJob())
+- Events: extend Event, fired with event(new MyEvent()), handled by Listener subclasses
+- Listeners: extend Listener, decorated @ListenFor(EventClass), auto-discovered
+
+## Key Code Patterns
+
+\`\`\`typescript
+// Route definition
+Route.group({ prefix: '/api', middleware: ['auth'] }, () => {
+  Route.resource('posts', PostController);
+});
+
+// Controller
+@Injectable()
+export class PostController extends Controller {
+  constructor(private posts: PostService) { super(); }
+  async index(_req: Request): Promise<Response> {
+    return this.json({ data: await this.posts.all() });
+  }
+}
+
+// ORM query
+const posts = await Post.where('published', true).with('author').paginate(1, 15);
+
+// Job dispatch
+await dispatch(new SendWelcomeEmail(user));
+
+// Event
+await event(new UserRegistered(user));
+\`\`\`
+
+## CLI
+npx faber make:controller|model|service|job|event|listener|migration
+npx faber db:migrate | db:rollback | serve | route:list
+`;
 }
 
 export async function scaffoldProject(opts: ScaffoldOptions): Promise<string[]> {

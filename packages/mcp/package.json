@@ -1,0 +1,38 @@
+{
+  "name": "@faber-js/mcp",
+  "version": "1.0.0",
+  "description": "FaberJS MCP server — AI coding agent integration for Claude Code, Cursor, and Claude Desktop",
+  "main": "dist/index.js",
+  "bin": {
+    "faber-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "keywords": [
+    "faberjs",
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "cursor",
+    "copilot",
+    "ai"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.2"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.8.3",
+    "@types/node": "^20.19.0"
+  }
+}

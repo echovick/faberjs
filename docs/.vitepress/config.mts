@@ -70,7 +70,7 @@ export default defineConfig({
 
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2024 FaberJS Contributors',
+      copyright: 'Copyright © 2026 FaberJS Contributors',
     },
 
     search: {
