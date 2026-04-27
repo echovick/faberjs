@@ -72,10 +72,10 @@ importers:
         specifier: ^0.32.1
         version: 0.32.1
       '@faber-js/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@faber-js/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       reflect-metadata:
         specifier: ^0.2.0
@@ -84,10 +84,10 @@ importers:
   packages/auth:
     dependencies:
       '@faber-js/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@faber-js/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       jose:
         specifier: ^5.9.6
@@ -104,16 +104,16 @@ importers:
   packages/console:
     dependencies:
       '@faber-js/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@faber-js/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       '@faber-js/orm':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../orm
       '@faber-js/router':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../router
       commander:
         specifier: ^12.1.0
@@ -128,16 +128,16 @@ importers:
   packages/events:
     dependencies:
       '@faber-js/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@faber-js/queue':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../queue
 
   packages/http:
     dependencies:
       '@faber-js/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       fastify:
         specifier: ^5.8.3
@@ -146,7 +146,7 @@ importers:
   packages/orm:
     dependencies:
       '@faber-js/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       knex:
         specifier: ^3.1.0
@@ -165,7 +165,7 @@ importers:
   packages/queue:
     dependencies:
       '@faber-js/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       bullmq:
         specifier: ^5.12.0
@@ -181,35 +181,35 @@ importers:
   packages/router:
     dependencies:
       '@faber-js/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@faber-js/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
 
   packages/testing:
     dependencies:
       '@faber-js/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@faber-js/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       '@faber-js/orm':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../orm
 
   packages/validation:
     dependencies:
       '@faber-js/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@faber-js/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
     devDependencies:
       '@faber-js/orm':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../orm
       '@types/better-sqlite3':
         specifier: ^7.6.8
