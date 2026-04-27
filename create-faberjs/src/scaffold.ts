@@ -39,7 +39,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
           '@faber-js/queue': '^1.0.4',
           '@faber-js/events': '^1.0.4',
           '@faber-js/validation': '^1.0.4',
-          '@faber-js/console': '^1.0.4',
+          '@faber-js/console': '^1.0.6',
           ...(includeAuth ? { '@faber-js/auth': '^1.0.4' } : {}),
           'reflect-metadata': '^0.2.2',
           ...dbConfig.driverDep,
