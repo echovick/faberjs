@@ -5,7 +5,7 @@ export function startServer(cwd: string, port = 3000): void {
   const entry = join(cwd, 'bootstrap', 'app.ts');
   process.stdout.write(`\x1b[36mINFO\x1b[0m  Starting server on port ${port}...\n`);
 
-  const child = spawn('node', ['--import', 'tsx/esm', '--env-file', '.env', '--watch', entry], {
+  const child = spawn('node', ['--loader', 'ts-node/esm', '--env-file', '.env', '--watch', entry], {
     cwd,
     stdio: 'inherit',
     env: { ...process.env, PORT: String(port) },

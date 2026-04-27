@@ -45,7 +45,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
         },
         devDependencies: {
           typescript: '^5.8.3',
-          tsx: '^4.19.3',
+          'ts-node': '^10.9.0',
           '@types/node': '^20.19.0',
         },
       },
@@ -71,6 +71,10 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
           declaration: true,
           declarationMap: true,
           sourceMap: true,
+        },
+        'ts-node': {
+          esm: true,
+          experimentalSpecifierResolution: 'node',
         },
         include: ['**/*.ts'],
         exclude: ['node_modules', 'dist'],
