@@ -1,21 +1,21 @@
 # Default — all files require core team review
-* @faberjs/core-team
+* @faber-js/core-team
 
 # Package-specific ownership
-packages/core/         @faberjs/core-team
-packages/router/       @faberjs/core-team
-packages/orm/          @faberjs/core-team
-packages/http/         @faberjs/core-team
-packages/console/      @faberjs/core-team
-packages/queue/        @faberjs/core-team
-packages/events/       @faberjs/core-team
-packages/auth/         @faberjs/core-team
-packages/config/       @faberjs/core-team
-packages/validation/   @faberjs/core-team
-packages/cache/        @faberjs/core-team
-packages/testing/      @faberjs/core-team
-create-faberjs/        @faberjs/core-team
+packages/core/         @faber-js/core-team
+packages/router/       @faber-js/core-team
+packages/orm/          @faber-js/core-team
+packages/http/         @faber-js/core-team
+packages/console/      @faber-js/core-team
+packages/queue/        @faber-js/core-team
+packages/events/       @faber-js/core-team
+packages/auth/         @faber-js/core-team
+packages/config/       @faber-js/core-team
+packages/validation/   @faber-js/core-team
+packages/cache/        @faber-js/core-team
+packages/testing/      @faber-js/core-team
+create-faberjs/        @faber-js/core-team
 
 # CI and release configuration — extra scrutiny
-.github/workflows/     @faberjs/core-team
-.changeset/            @faberjs/core-team
+.github/workflows/     @faber-js/core-team
+.changeset/            @faber-js/core-team
