@@ -41,6 +41,7 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
           '@faber-js/console': '^1.0.0',
           ...(includeAuth ? { '@faber-js/auth': '^1.0.0' } : {}),
           'reflect-metadata': '^0.2.2',
+          ...dbConfig.driverDep,
         },
         devDependencies: {
           typescript: '^5.8.3',
@@ -290,9 +291,11 @@ function buildDbConfig(driver: ScaffoldOptions['dbDriver']): {
   envLines: string[];
   exampleLines: string[];
   configLines: string[];
+  driverDep: Record<string, string>;
 } {
   if (driver === 'sqlite') {
     return {
+      driverDep: { 'better-sqlite3': '^9.4.0' },
       envLines: ['DB_CONNECTION=better-sqlite3', 'DB_DATABASE=./storage/database.sqlite'],
       exampleLines: ['DB_CONNECTION=better-sqlite3', 'DB_DATABASE=./storage/database.sqlite'],
       configLines: [
@@ -306,6 +309,7 @@ function buildDbConfig(driver: ScaffoldOptions['dbDriver']): {
 
   if (driver === 'mysql') {
     return {
+      driverDep: { mysql2: '^3.11.0' },
       envLines: [
         'DB_CONNECTION=mysql2',
         'DB_HOST=127.0.0.1',
@@ -339,6 +343,7 @@ function buildDbConfig(driver: ScaffoldOptions['dbDriver']): {
 
   // postgres default
   return {
+    driverDep: { pg: '^8.13.0' },
     envLines: [
       'DB_CONNECTION=pg',
       'DB_HOST=127.0.0.1',
