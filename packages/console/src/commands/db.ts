@@ -66,9 +66,9 @@ async function loadMigrations(cwd: string): Promise<MigrationRunner> {
 
   for (const file of files) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require(join(migrationsDir, file)) as { default?: Migration };
+    const mod = require(join(migrationsDir, file)) as { default?: new () => Migration };
     if (mod.default) {
-      runner.register(file.replace(/\.(ts|js)$/, ''), mod.default);
+      runner.register(file.replace(/\.(ts|js)$/, ''), new mod.default());
     }
   }
 
