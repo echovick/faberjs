@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/console",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "FaberJS CLI — code generation, migration runner, queue worker, and REPL",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

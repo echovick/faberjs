@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/queue",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "FaberJS background job dispatching and queue workers backed by BullMQ",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
