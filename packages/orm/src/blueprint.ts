@@ -1,5 +1,6 @@
 import type { Knex } from 'knex';
 import type { ColumnValue } from './types';
+import { getConnection } from './connection';
 
 export class ColumnDefinition {
   readonly #col: Knex.ColumnBuilder;
@@ -78,14 +79,9 @@ export class Blueprint {
   }
 
   timestamps(): void {
-    this.#table
-      .timestamp('created_at', { useTz: false })
-      .notNullable()
-      .defaultTo('CURRENT_TIMESTAMP');
-    this.#table
-      .timestamp('updated_at', { useTz: false })
-      .notNullable()
-      .defaultTo('CURRENT_TIMESTAMP');
+    const now = getConnection().fn.now();
+    this.#table.timestamp('created_at', { useTz: false }).notNullable().defaultTo(now);
+    this.#table.timestamp('updated_at', { useTz: false }).notNullable().defaultTo(now);
   }
 
   softDeletes(): void {
