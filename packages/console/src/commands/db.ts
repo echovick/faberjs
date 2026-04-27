@@ -1,10 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createRequire } from 'node:module';
 import { MigrationRunner, createConnection } from '@faber-js/orm';
 import type { Migration, ConnectionConfig } from '@faber-js/orm';
-
-const req = createRequire(import.meta.url);
 
 function loadDotEnv(cwd: string): void {
   const envPath = join(cwd, '.env');
@@ -57,7 +54,8 @@ async function loadMigrations(cwd: string): Promise<MigrationRunner> {
     .sort();
 
   for (const file of files) {
-    const mod = req(join(migrationsDir, file)) as { default?: Migration };
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require(join(migrationsDir, file)) as { default?: Migration };
     if (mod.default) {
       runner.register(file.replace(/\.(ts|js)$/, ''), mod.default);
     }
@@ -106,7 +104,8 @@ export async function runSeeders(cwd: string): Promise<void> {
     .filter((f) => f.endsWith('.ts') || f.endsWith('.js'))
     .sort();
   for (const file of files) {
-    const mod = req(join(seedersDir, file)) as { default?: { run(): Promise<void> } };
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require(join(seedersDir, file)) as { default?: { run(): Promise<void> } };
     if (mod.default) {
       await mod.default.run();
       process.stdout.write(`\x1b[32mSEEDED\x1b[0m ${file}\n`);

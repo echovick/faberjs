@@ -58,6 +58,10 @@ export abstract class Model {
     return result;
   }
 
+  toJSON(): Record<string, ColumnValue> {
+    return this.toObject();
+  }
+
   // ── Instance CRUD ──────────────────────────────────────────────
 
   async save(): Promise<this> {
