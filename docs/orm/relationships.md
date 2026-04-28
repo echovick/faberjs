@@ -115,6 +115,32 @@ const post = await Post.findOrFail<Post>(1);
 const tags = await post.tags().get(); // Tag[]
 ```
 
+### Pivot table manipulation
+
+`BelongsToMany` provides `attach()`, `detach()`, and `sync()` for managing pivot rows directly.
+
+```typescript
+const post = await Post.findOrFail<Post>(1);
+
+// Add tags without removing existing ones
+await post.tags().attach([1, 2, 3]);
+
+// Attach with extra pivot data
+await post.tags().attach([4], { featured: true });
+
+// Remove specific tags
+await post.tags().detach([2]);
+
+// Remove all tags
+await post.tags().detach();
+
+// Replace all tags — only tags 1 and 3 remain
+await post.tags().sync([1, 3]);
+
+// Sync without detaching extras (only add missing ones)
+await post.tags().sync([5], false);
+```
+
 ## Eager loading
 
 Load relationships without N+1 queries using `.with()` on the query builder. Eager loading fires one additional query per relationship.

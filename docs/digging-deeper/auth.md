@@ -76,12 +76,14 @@ import { AppAuthServiceProvider } from '../app/providers/AppAuthServiceProvider'
 app.register(new AppAuthServiceProvider(app));
 ```
 
-### 3. Register the middleware
+### 3. Use `auth` in routes
+
+`AuthServiceProvider` automatically registers the `auth` middleware — no manual `kernel.register()` call needed. Use it directly in your routes:
 
 ```typescript
-import { AuthMiddleware } from '@faber-js/auth';
-
-kernel.register('auth', new AuthMiddleware());
+Route.group({ middleware: ['auth'] }, () => {
+  Route.get('/me', [UserController, 'me']);
+});
 ```
 
 ### Logging in

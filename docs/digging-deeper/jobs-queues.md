@@ -4,9 +4,20 @@ FaberJS uses BullMQ (backed by Redis) for job queues. A job is a class that repr
 
 Like Laravel's `dispatch(new SendEmailJob($user))`, FaberJS uses a `dispatch()` global function.
 
-## Prerequisites
+## Sync driver (no Redis)
 
-You need Redis running and `QueueServiceProvider` registered:
+For local development and testing you can run jobs inline — no Redis required:
+
+```bash
+# .env
+QUEUE_DRIVER=sync
+```
+
+When `QUEUE_DRIVER=sync`, every `dispatch()` call executes the job immediately in the same process. Remove this for staging and production where you want real background processing.
+
+## Prerequisites (BullMQ / Redis)
+
+For background processing you need Redis running and `QueueServiceProvider` registered:
 
 ```typescript
 // bootstrap/app.ts

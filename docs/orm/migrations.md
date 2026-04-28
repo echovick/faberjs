@@ -69,7 +69,21 @@ Drop a table if it exists. Always use this in `down()`.
 await Schema.dropIfExists('users');
 ```
 
+### `Schema.dropAll()`
+
+Drop **every table** in the database. Used internally by `faber db:fresh`. Handles foreign key constraints per driver (MySQL disables `FOREIGN_KEY_CHECKS`, PostgreSQL uses `CASCADE`).
+
+```typescript
+await Schema.dropAll();
+```
+
 ## Blueprint methods
+
+`Blueprint` and `ColumnDefinition` are exported from `@faber-js/orm` if you need them for type annotations:
+
+```typescript
+import { Blueprint, ColumnDefinition } from '@faber-js/orm';
+```
 
 The `table` argument passed to the `create` callback is a `Blueprint`. All methods return a `ColumnDefinition` that can be chained further.
 
@@ -99,6 +113,7 @@ table.string('slug').notNullable();
 table.string('role').defaultTo('user');
 table.integer('sort_order').unsigned();
 table.string('email').unique();
+table.string('api_key').primary(); // mark any column as primary key
 ```
 
 ### Indexes

@@ -130,16 +130,22 @@ if (req.wantsJson()) {
 
 ## The authenticated user
 
-After the `auth` middleware runs, the authenticated user is attached to `req.user`:
+After the `auth` middleware runs, the authenticated user is available via `req.user()`:
 
 ```typescript
 async profile(req: Request): Promise<Response> {
-  const user = req.user;  // AuthUser | null
+  const user = req.user();  // AuthUser | null
   return this.json({ data: user });
 }
 ```
 
-`AuthUser` has `id` (string | number) and an optional `email` field.
+The method is generic — pass your own type to get a typed result without a cast:
+
+```typescript
+const user = req.user<User>();  // User | null
+```
+
+`AuthUser` has `id` (string | number) and a `[key: string]: unknown` index signature for additional fields.
 
 ## Validation
 

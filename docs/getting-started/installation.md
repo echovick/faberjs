@@ -89,6 +89,14 @@ Selecting a coding agent adds context files that give the agent a full understan
 
 The Claude integration wires the `@faber-js/mcp` server automatically — Claude Code will have `faber_make`, `faber_docs`, `faber_migrate`, and `faber_route_list` tools available without any manual setup.
 
+## Application key
+
+The scaffolder automatically generates a unique `APP_KEY` in your `.env` file during project creation — you don't need to do anything. If you ever need to rotate the key (e.g. after a credential leak), run:
+
+```bash
+npx faber key:generate
+```
+
 ## First run
 
 Install dependencies, run migrations, and start the dev server:

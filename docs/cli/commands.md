@@ -85,6 +85,24 @@ Run all database seeders found in `database/seeders/`.
 npx faber db:seed
 ```
 
+### `npx faber db:fresh`
+
+Drop **all** tables in the database, then re-run every migration from scratch. Useful for resetting local state without worrying about `down()` methods.
+
+```bash
+npx faber db:fresh
+```
+
+> **Warning:** This destroys all data. Never run in production.
+
+### `npx faber db:refresh`
+
+Roll back every migration in reverse order (calling each `down()` method), then re-run them all. Unlike `db:fresh`, this exercises your `down()` implementations.
+
+```bash
+npx faber db:refresh
+```
+
 ---
 
 ## Code generators
@@ -345,6 +363,8 @@ FaberJS Tinker — application ready
 | `npx faber serve`                  | Start the dev server (hot reload)             |
 | `npx faber db:migrate`             | Run pending migrations                        |
 | `npx faber db:rollback`            | Roll back the last migration batch            |
+| `npx faber db:fresh`               | Drop all tables and re-run all migrations     |
+| `npx faber db:refresh`             | Rollback all + re-run all migrations          |
 | `npx faber db:status`              | Show migration status                         |
 | `npx faber db:seed`                | Run database seeders                          |
 | `npx faber make:controller <Name>` | Generate a controller                         |
