@@ -10,6 +10,7 @@ import type { AbstractToken, Binding, Constructor, ContainerContract, Factory } 
 export class Container implements ContainerContract {
   private readonly bindings = new Map<AbstractToken, Binding>();
   private readonly instances = new Map<AbstractToken, unknown>();
+  private readonly resolving = new Set<AbstractToken>();
 
   bind<T>(abstract: AbstractToken<T>, factory: Factory<T>): void {
     this.bindings.set(abstract, { factory: factory as Factory, singleton: false });
@@ -96,24 +97,36 @@ export class Container implements ContainerContract {
       throw new NotInjectableException(target.name);
     }
 
-    const paramTypes =
-      (Reflect.getMetadata('design:paramtypes', target) as Constructor[] | undefined) ?? [];
+    if (this.resolving.has(target)) {
+      throw new Error(
+        `Circular dependency detected while resolving [${target.name}]. ` +
+          `Check your service constructors for a dependency cycle.`,
+      );
+    }
 
-    const injectTokens =
-      (Reflect.getMetadata('inject:tokens', target) as Map<number, AbstractToken> | undefined) ??
-      new Map<number, AbstractToken>();
+    this.resolving.add(target);
+    try {
+      const paramTypes =
+        (Reflect.getMetadata('design:paramtypes', target) as Constructor[] | undefined) ?? [];
 
-    const args = paramTypes.map((paramType, index) => {
-      const token: AbstractToken = injectTokens.get(index) ?? paramType;
-      if ((token as unknown) === Object || token === undefined) {
-        throw new UnresolvableDependencyException(target.name, index);
-      }
-      return this.make(token);
-    });
+      const injectTokens =
+        (Reflect.getMetadata('inject:tokens', target) as Map<number, AbstractToken> | undefined) ??
+        new Map<number, AbstractToken>();
 
-    // Cast to a newable type for instantiation — safe because we verified
-    // via reflect-metadata that this target is a concrete, injectable class.
-    const Newable = target as unknown as new (...ctorArgs: unknown[]) => T;
-    return new Newable(...args);
+      const args = paramTypes.map((paramType, index) => {
+        const token: AbstractToken = injectTokens.get(index) ?? paramType;
+        if ((token as unknown) === Object || token === undefined) {
+          throw new UnresolvableDependencyException(target.name, index);
+        }
+        return this.make(token);
+      });
+
+      // Cast to a newable type for instantiation — safe because we verified
+      // via reflect-metadata that this target is a concrete, injectable class.
+      const Newable = target as unknown as new (...ctorArgs: unknown[]) => T;
+      return new Newable(...args);
+    } finally {
+      this.resolving.delete(target);
+    }
   }
 }

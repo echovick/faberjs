@@ -83,6 +83,7 @@ export function generateFile(
     agent: join(cwd, 'app', 'agents'),
     channel: join(cwd, 'app', 'channels'),
     mail: join(cwd, 'app', 'mail'),
+    policy: join(cwd, 'app', 'policies'),
   };
 
   const dir = dirMap[type];
@@ -103,6 +104,7 @@ export function generateFile(
     agent: `${pascal}Agent.ts`,
     channel: `${pascal}Channel.ts`,
     mail: `${pascal}Mail.ts`,
+    policy: `${pascal}Policy.ts`,
   };
 
   const fileName = fileNameMap[type] ?? `${pascal}.ts`;

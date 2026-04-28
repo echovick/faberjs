@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/ai",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "FaberJS AI-native agent scaffolding — Agent base, @Tool decorator, streaming, memory",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

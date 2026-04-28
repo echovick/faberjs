@@ -181,6 +181,28 @@ export class {{Name}}Channel extends Channel {
 }
 `,
 
+  policy: `import type { AuthUser } from '@faber-js/http';
+import { Policy } from '@faber-js/auth';
+
+export class {{Name}}Policy extends Policy {
+  async view(_user: AuthUser, _model: unknown): Promise<boolean> {
+    return true;
+  }
+
+  async create(_user: AuthUser): Promise<boolean> {
+    return true;
+  }
+
+  async update(_user: AuthUser, _model: unknown): Promise<boolean> {
+    return true;
+  }
+
+  async delete(_user: AuthUser, _model: unknown): Promise<boolean> {
+    return true;
+  }
+}
+`,
+
   mail: `import { Mailable } from '@faber-js/mail';
 
 export class {{Name}}Mail extends Mailable {

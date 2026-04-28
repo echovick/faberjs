@@ -1,3 +1,6 @@
+import { randomBytes } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join as pathJoin } from 'node:path';
 import { program } from 'commander';
 import {
   generateFile,
@@ -182,6 +185,45 @@ program
     const result = generateFile('mail', name, cwd);
     writeGeneratedFile(result);
     log.created(result.filePath);
+  });
+
+program
+  .command('make:policy <name>')
+  .description('Create a new authorization policy')
+  .action((name: string) => {
+    const result = generateFile('policy', name, cwd);
+    writeGeneratedFile(result);
+    log.created(result.filePath);
+  });
+
+// ── key:generate ───────────────────────────────────────────────────
+
+program
+  .command('key:generate')
+  .description('Generate a secure APP_KEY and write it to .env')
+  .option('--show', 'Print the key without writing to .env')
+  .action((options: { show?: boolean }) => {
+    const key = `base64:${randomBytes(32).toString('base64')}`;
+
+    if (options.show) {
+      process.stdout.write(`${key}\n`);
+      return;
+    }
+
+    const envPath = pathJoin(cwd, '.env');
+    if (!existsSync(envPath)) {
+      process.stderr.write('.env file not found. Run from your project root.\n');
+      process.exit(1);
+    }
+
+    let env = readFileSync(envPath, 'utf8');
+    if (/^APP_KEY=/m.test(env)) {
+      env = env.replace(/^APP_KEY=.*/m, `APP_KEY=${key}`);
+    } else {
+      env = `APP_KEY=${key}\n${env}`;
+    }
+    writeFileSync(envPath, env, 'utf8');
+    process.stdout.write(`Application key set: ${key}\n`);
   });
 
 // ── db:* commands ──────────────────────────────────────────────────

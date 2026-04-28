@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/bridge-vue",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "FaberJS bridge adapter for Vue 3 — createBridgeApp, usePage, useForm, BridgeLink, BridgeHead",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
