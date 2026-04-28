@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/events",
-  "version": "1.0.7",
+  "version": "1.0.19",
   "description": "FaberJS application-level event and listener system with auto-discovery",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

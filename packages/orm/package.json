@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/orm",
-  "version": "1.0.7",
+  "version": "1.0.19",
   "description": "FaberJS Eloquent-like ActiveRecord ORM with query builder, relationships, and migrations",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
