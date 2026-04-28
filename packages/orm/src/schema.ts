@@ -37,4 +37,45 @@ export class Schema {
       callback(new Blueprint(builder));
     });
   }
+
+  static async dropAll(): Promise<void> {
+    const db = getConnection();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client: string = (db as any).client?.config?.client ?? '';
+
+    let tables: string[] = [];
+
+    if (client === 'sqlite3' || client === 'better-sqlite3') {
+      const rows = (await db.raw(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+      )) as Array<{ name: string }>;
+      tables = rows.map((r) => r.name);
+    } else if (client === 'pg') {
+      const result = (await db.raw(
+        "SELECT tablename AS name FROM pg_tables WHERE schemaname='public'",
+      )) as { rows: Array<{ name: string }> };
+      tables = result.rows.map((r) => r.name);
+    } else if (client === 'mysql' || client === 'mysql2') {
+      const result = (await db.raw(
+        'SELECT table_name AS name FROM information_schema.tables WHERE table_schema = DATABASE()',
+      )) as [Array<{ name: string }>];
+      tables = result[0].map((r) => r.name);
+    }
+
+    if (client === 'mysql' || client === 'mysql2') {
+      await db.raw('SET FOREIGN_KEY_CHECKS = 0');
+    }
+
+    for (const table of tables) {
+      if (client === 'pg') {
+        await db.raw(`DROP TABLE IF EXISTS "${table}" CASCADE`);
+      } else {
+        await db.schema.dropTableIfExists(table);
+      }
+    }
+
+    if (client === 'mysql' || client === 'mysql2') {
+      await db.raw('SET FOREIGN_KEY_CHECKS = 1');
+    }
+  }
 }

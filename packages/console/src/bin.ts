@@ -253,6 +253,22 @@ program
   });
 
 program
+  .command('db:fresh')
+  .description('Drop all tables and re-run all migrations')
+  .action(async () => {
+    const { freshMigrations } = await import('./commands/db');
+    await freshMigrations(cwd);
+  });
+
+program
+  .command('db:refresh')
+  .description('Roll back all migrations and re-run them')
+  .action(async () => {
+    const { refreshMigrations } = await import('./commands/db');
+    await refreshMigrations(cwd);
+  });
+
+program
   .command('db:status')
   .description('Show migration status')
   .action(async () => {

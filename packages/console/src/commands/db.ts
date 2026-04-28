@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import pc from 'picocolors';
-import { MigrationRunner, createConnection, destroyConnection } from '@faber-js/orm';
+import { MigrationRunner, Schema, createConnection, destroyConnection } from '@faber-js/orm';
 import type { Migration, ConnectionConfig } from '@faber-js/orm';
 import { log } from '../ui';
 
@@ -145,6 +145,59 @@ export async function runSeeders(cwd: string): Promise<void> {
     if (count > 0) {
       process.stdout.write(
         `\n  ${pc.green('✓')} ${pc.dim(`Ran ${count} seeder${count === 1 ? '' : 's'} successfully.`)}\n\n`,
+      );
+    }
+  } finally {
+    await destroyConnection();
+  }
+}
+
+export async function freshMigrations(cwd: string): Promise<void> {
+  loadDotEnv(cwd);
+  await createConnection(buildConnectionConfig());
+  try {
+    await Schema.dropAll();
+    process.stdout.write(`  ${pc.dim('Dropped all tables.')}\n`);
+    const runner = await loadMigrations(cwd);
+    const executed = await runner.run();
+    if (executed.length === 0) {
+      process.stdout.write(`  ${pc.dim('Nothing to migrate.')}\n`);
+    } else {
+      process.stdout.write('\n');
+      for (const name of executed) {
+        log.migrated(name);
+      }
+      process.stdout.write(
+        `\n  ${pc.green('✓')} ${pc.dim(`Ran ${executed.length} migration${executed.length === 1 ? '' : 's'} successfully.`)}\n\n`,
+      );
+    }
+  } finally {
+    await destroyConnection();
+  }
+}
+
+export async function refreshMigrations(cwd: string): Promise<void> {
+  loadDotEnv(cwd);
+  await createConnection(buildConnectionConfig());
+  try {
+    const runner = await loadMigrations(cwd);
+    const rolled = await runner.reset();
+    if (rolled.length > 0) {
+      process.stdout.write('\n');
+      for (const name of rolled) {
+        log.rolledBack(name);
+      }
+    }
+    const executed = await runner.run();
+    if (executed.length === 0) {
+      process.stdout.write(`  ${pc.dim('Nothing to migrate.')}\n`);
+    } else {
+      process.stdout.write('\n');
+      for (const name of executed) {
+        log.migrated(name);
+      }
+      process.stdout.write(
+        `\n  ${pc.green('✓')} ${pc.dim(`Refreshed ${executed.length} migration${executed.length === 1 ? '' : 's'} successfully.`)}\n\n`,
       );
     }
   } finally {
