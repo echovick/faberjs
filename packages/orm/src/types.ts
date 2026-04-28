@@ -3,7 +3,7 @@ export type WhereOperator = '=' | '!=' | '<' | '<=' | '>' | '>=' | 'like' | 'not
 export type OrderDirection = 'asc' | 'desc';
 
 export interface ConnectionConfig {
-  readonly client: 'sqlite3' | 'pg' | 'mysql2' | 'better-sqlite3';
+  readonly client: 'sqlite3' | 'pg' | 'mysql2' | 'better-sqlite3' | 'sqlite-wasm';
   readonly connection: string | SqliteConnectionConfig | PgConnectionConfig;
 }
 

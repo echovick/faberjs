@@ -229,7 +229,7 @@ program
   .option('-p, --port <port>', 'Port to listen on', '3000')
   .action(async (options: { port: string }) => {
     const { startServer } = await import('./commands/serve');
-    startServer(cwd, Number(options.port), version);
+    await startServer(cwd, Number(options.port), version);
   });
 
 // ── route:list ─────────────────────────────────────────────────────

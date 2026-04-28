@@ -32,16 +32,16 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
           'migrate:rollback': 'faber db:rollback',
         },
         dependencies: {
-          '@faber-js/core': '^1.0.19',
-          '@faber-js/config': '^1.0.19',
-          '@faber-js/http': '^1.0.19',
-          '@faber-js/router': '^1.0.19',
-          '@faber-js/orm': '^1.0.19',
-          '@faber-js/queue': '^1.0.19',
-          '@faber-js/events': '^1.0.19',
-          '@faber-js/validation': '^1.0.19',
-          '@faber-js/console': '^1.0.19',
-          ...(includeAuth ? { '@faber-js/auth': '^1.0.19' } : {}),
+          '@faber-js/core': '^1.0.27',
+          '@faber-js/config': '^1.0.27',
+          '@faber-js/http': '^1.0.27',
+          '@faber-js/router': '^1.0.27',
+          '@faber-js/orm': '^1.0.27',
+          '@faber-js/queue': '^1.0.27',
+          '@faber-js/events': '^1.0.27',
+          '@faber-js/validation': '^1.0.27',
+          '@faber-js/console': '^1.0.27',
+          ...(includeAuth ? { '@faber-js/auth': '^1.0.27' } : {}),
           'reflect-metadata': '^0.2.2',
           ...dbConfig.driverDep,
         },
@@ -369,6 +369,12 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
             `  /make event UserRegistered`,
             `  /make listener SendWelcomeEmailListener`,
             `  /make migration CreatePostsTable`,
+            `  /make schema Post`,
+            `  /make channel Chat`,
+            `  /make agent Support`,
+            `  /make view Post/Show`,
+            `  /make provider App`,
+            `  /make command records:prune`,
             ``,
             `Run the appropriate \`npx faber make:<type> <Name>\` command based on the user's request.`,
             `For model with -m flag, run \`npx faber make:model <Name> -m\`.`,
@@ -515,10 +521,14 @@ app/
   policies/      Auth policies — extend Policy
   providers/     Service providers — extend ServiceProvider
   commands/      Custom CLI commands — extend Command
+  agents/        AI agents — extend Agent, add @Tool() methods
+  channels/      WebSocket channels — extend Channel
 bootstrap/app.ts Application entry — registers providers, loads routes
 config/          Typed config files
 database/migrations/ Migration files
+resources/views/ JSX view components (Blade equivalent)
 routes/api.ts    Route definitions
+schema/          Schema-first model definitions
 \`\`\`
 
 ## Core Flow
@@ -659,6 +669,68 @@ export class CreatePostRequest extends FormRequest {
 // In controller: const data = req.validated();  — auto 422 on failure
 \`\`\`
 
+### Schema-first Models (@faber-js/schema)
+
+\`\`\`typescript
+import { schema, t } from '@faber-js/schema';
+
+export const Post = schema('posts', {
+  id:        t.id(),
+  title:     t.string().min(2).max(255),
+  body:      t.text(),
+  published: t.boolean().default(false),
+  createdAt: t.timestamp().auto(),
+  updatedAt: t.timestamp().auto(),
+});
+\`\`\`
+
+### Real-Time Channels (@faber-js/channels)
+
+\`\`\`typescript
+import { Channel, Socket } from '@faber-js/channels';
+
+export class ChatChannel extends Channel {
+  async handle(socket: Socket): Promise<void> {
+    socket.on('message', (data) => socket.broadcast('message', data));
+    socket.on('disconnect', () => { /* cleanup */ });
+  }
+}
+\`\`\`
+
+### Runtime Adapters (@faber-js/adapters)
+
+\`\`\`typescript
+import { FastifyAdapter, BunAdapter, createLambdaHandler, createWorkerHandler, detectRuntime } from '@faber-js/adapters';
+
+// Auto-detect and create adapter for current runtime (Node, Bun, Lambda, Cloudflare)
+const adapter = createAdapter(); // detectRuntime() selects the right one
+
+// Lambda deployment
+export const handler = createLambdaHandler(app);
+
+// Cloudflare Worker
+export default createWorkerHandler(async (req) => Response.json({ edge: true }));
+\`\`\`
+
+### AI Agents (@faber-js/ai)
+
+\`\`\`typescript
+import { Injectable } from '@faber-js/core';
+import { Agent, Tool } from '@faber-js/ai';
+
+@Injectable()
+export class SupportAgent extends Agent {
+  override model = 'claude-sonnet-4-6';
+  override systemPrompt = 'You are a helpful support assistant.';
+
+  @Tool({ description: 'Look up a customer by email' })
+  async lookupCustomer(input: { email: string }): Promise<string> {
+    const user = await User.where('email', input.email).first();
+    return user ? JSON.stringify(user) : 'Not found';
+  }
+}
+\`\`\`
+
 ## CLI Commands
 
 \`\`\`bash
@@ -669,6 +741,12 @@ npx faber make:job SendWelcomeEmail
 npx faber make:event UserRegistered
 npx faber make:listener SendWelcomeEmailListener
 npx faber make:migration CreatePostsTable
+npx faber make:schema Post
+npx faber make:channel Chat
+npx faber make:agent Support
+npx faber make:view Post/Show
+npx faber make:provider App
+npx faber make:command records:prune
 npx faber db:migrate
 npx faber db:rollback
 npx faber serve
@@ -681,7 +759,7 @@ npx faber route:list
 - NEVER instantiate services with \`new\` — use constructor injection
 - NEVER skip \`reflect-metadata\` import in bootstrap/app.ts
 - NEVER use \`req.body\` directly — use \`req.validated()\` or \`req.input()\`
-- NEVER write \`@Injectable()\` on Model or Service subclasses — only on Controllers
+- NEVER write \`@Injectable()\` on Model subclasses — Controllers and Services both need it
 `;
 }
 
@@ -700,6 +778,8 @@ You are working in a FaberJS project — a Laravel-inspired Node.js/TypeScript b
 - Models extend Model — no decorator needed
 - Jobs extend Job, implement async handle()
 - Events extend Event, Listeners extend Listener with @ListenFor(EventClass)
+- AI agents extend Agent, use @Tool() decorator on tool methods
+- WebSocket channels extend Channel, receive a Socket argument in handle()
 
 ## Key APIs
 
@@ -708,14 +788,16 @@ Groups: Route.group({ prefix, middleware }, () => { ... })
 Request: req.route(param), req.query(key), req.input(key), req.validated(), req.user<T>()
 Response: this.json(data, status?), this.noContent()
 ORM: Model.all(), Model.find(id), Model.where(col, val).with(rel).paginate(page, per)
+Schema: schema('table', { id: t.id(), name: t.string(), ... }) from @faber-js/schema
 Dispatch: await dispatch(new MyJob(data))
 Events: await event(new MyEvent(data))
 Auth: Route.middleware('auth').group(...), req.user<T>(), this.authorize('ability', model)
 Validation: class MyRequest extends FormRequest { rules() { return { field: 'required|string' } } }
+Adapters: createAdapter() auto-selects Node/Bun/Lambda/Cloudflare adapter
 
 ## CLI
 
-npx faber make:controller|model|service|job|event|listener|migration|provider|command|agent
+npx faber make:controller|model|service|job|event|listener|migration|provider|command|agent|schema|channel|view
 npx faber db:migrate | db:rollback | db:status
 npx faber serve | route:list | tinker
 
@@ -727,7 +809,11 @@ Services: app/services/
 Jobs: app/jobs/
 Events: app/events/
 Listeners: app/listeners/
+Agents: app/agents/
+Channels: app/channels/
 Migrations: database/migrations/
+Views: resources/views/
+Schema: schema/
 Routes: routes/api.ts
 Bootstrap: bootstrap/app.ts
 `;
@@ -748,6 +834,8 @@ This is a FaberJS project — a Laravel-inspired Node.js/TypeScript backend fram
 - Jobs: extend Job, implement async handle(), dispatched with dispatch(new MyJob())
 - Events: extend Event, fired with event(new MyEvent()), handled by Listener subclasses
 - Listeners: extend Listener, decorated @ListenFor(EventClass), auto-discovered
+- AI Agents: extend Agent, add @Tool() methods, set model + systemPrompt
+- WebSocket Channels: extend Channel, implement handle(socket: Socket)
 
 ## Key Code Patterns
 
@@ -769,16 +857,28 @@ export class PostController extends Controller {
 // ORM query
 const posts = await Post.where('published', true).with('author').paginate(1, 15);
 
+// Schema-first model
+import { schema, t } from '@faber-js/schema';
+export const Post = schema('posts', { id: t.id(), title: t.string(), body: t.text() });
+
 // Job dispatch
 await dispatch(new SendWelcomeEmail(user));
 
 // Event
 await event(new UserRegistered(user));
+
+// AI Agent
+@Injectable()
+export class SupportAgent extends Agent {
+  override model = 'claude-sonnet-4-6';
+  @Tool({ description: 'Look up user' })
+  async lookupUser(input: { id: number }): Promise<string> { ... }
+}
 \`\`\`
 
 ## CLI
-npx faber make:controller|model|service|job|event|listener|migration
-npx faber db:migrate | db:rollback | serve | route:list
+npx faber make:controller|model|service|job|event|listener|migration|schema|channel|agent|view
+npx faber db:migrate | db:rollback | db:status | serve | route:list
 `;
 }
 
@@ -797,6 +897,8 @@ You are working in a FaberJS project — a Laravel-inspired Node.js/TypeScript b
 - Models extend Model — no decorator needed
 - Jobs extend Job, implement async handle()
 - Events extend Event, Listeners extend Listener with @ListenFor(EventClass)
+- AI agents extend Agent, use @Tool() decorator on tool methods
+- WebSocket channels extend Channel, receive a Socket argument in handle()
 
 ## Key APIs
 
@@ -805,14 +907,16 @@ Groups: Route.group({ prefix, middleware }, () => { ... })
 Request: req.route(param), req.query(key), req.input(key), req.validated(), req.user<T>()
 Response: this.json(data, status?), this.noContent()
 ORM: Model.all(), Model.find(id), Model.where(col, val).with(rel).paginate(page, per)
+Schema: schema('table', { id: t.id(), name: t.string(), ... }) from @faber-js/schema
 Dispatch: await dispatch(new MyJob(data))
 Events: await event(new MyEvent(data))
 Auth: Route.middleware('auth').group(...), req.user<T>(), this.authorize('ability', model)
 Validation: class MyRequest extends FormRequest { rules() { return { field: 'required|string' } } }
+Adapters: createAdapter() auto-selects Node/Bun/Lambda/Cloudflare adapter
 
 ## CLI
 
-npx faber make:controller|model|service|job|event|listener|migration|provider|command|agent
+npx faber make:controller|model|service|job|event|listener|migration|provider|command|agent|schema|channel|view
 npx faber db:migrate | db:rollback | db:status
 npx faber serve | route:list | tinker
 
@@ -824,7 +928,11 @@ Services: app/services/
 Jobs: app/jobs/
 Events: app/events/
 Listeners: app/listeners/
+Agents: app/agents/
+Channels: app/channels/
 Migrations: database/migrations/
+Views: resources/views/
+Schema: schema/
 Routes: routes/api.ts
 Bootstrap: bootstrap/app.ts
 `;
@@ -1168,6 +1276,8 @@ await user.fill(req.all());         // ❌
 | Fat controller methods | Controller → Action class |
 | \`event()\` from \`EventClass.dispatch()\` | \`event(new EventClass())\` global |
 | \`JobClass.dispatch()\` | \`dispatch(new JobClass())\` global |
+| Raw schema via \`new Model()\` | Use \`schema('table', { ... })\` from \`@faber-js/schema\` |
+| Hardcoding Fastify/Bun adapter | Use \`createAdapter()\` — auto-detects runtime |
 `;
 }
 
