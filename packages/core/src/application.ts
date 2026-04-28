@@ -3,12 +3,18 @@ import { Container } from './container';
 import type { ServiceProvider } from './service-provider';
 import type { ApplicationContract } from './types';
 
+export type ExceptionReporter = (
+  error: Error,
+  context: Record<string, unknown>,
+) => void | Promise<void>;
+
 export class Application extends Container implements ApplicationContract {
   private static currentInstance: Application | null = null;
 
   private readonly providers: ServiceProvider[] = [];
   private isBooted = false;
   private readonly base: string;
+  private exceptionReporter: ExceptionReporter | null = null;
 
   constructor(basePath: string = process.cwd()) {
     super();
@@ -48,5 +54,20 @@ export class Application extends Container implements ApplicationContract {
 
   get booted(): boolean {
     return this.isBooted;
+  }
+
+  reportExceptionsUsing(reporter: ExceptionReporter): this {
+    this.exceptionReporter = reporter;
+    this.instance('exception.reporter', reporter);
+    return this;
+  }
+
+  async reportException(error: unknown, context: Record<string, unknown> = {}): Promise<void> {
+    const err = error instanceof Error ? error : new Error(String(error));
+    if (this.exceptionReporter) {
+      await Promise.resolve(this.exceptionReporter(err, context));
+    } else if (process.env['APP_ENV'] !== 'production') {
+      process.stderr.write(`\x1b[31m[Exception]\x1b[0m ${err.stack ?? err.message}\n`);
+    }
   }
 }

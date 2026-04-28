@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 
 export { Application } from './application';
+export type { ExceptionReporter } from './application';
 export { Container } from './container';
 export { Injectable, Inject } from './decorators';
 export { Discoverer } from './discoverer';

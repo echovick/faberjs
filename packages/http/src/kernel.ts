@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import multipart from '@fastify/multipart';
 import type { FastifyInstance, FastifyRequest as RawFastifyRequest, FastifyReply } from 'fastify';
 import type { ApplicationContract, Constructor } from '@faber-js/core';
 import { Request } from './request';
@@ -13,6 +14,7 @@ import type {
   Middleware,
   RouteDefinition,
   RouterContract,
+  UploadedFile,
 } from './types';
 
 function matchPathParams(pattern: string, pathname: string): Record<string, string> | null {
@@ -57,6 +59,7 @@ export class HttpKernel implements HttpKernelContract {
 
   constructor(private readonly app: ApplicationContract) {
     this.fastify = Fastify({ logger: false });
+    void this.fastify.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } });
   }
 
   use(middleware: Middleware): this {
@@ -94,7 +97,10 @@ export class HttpKernel implements HttpKernelContract {
     await this.fastify.close();
   }
 
-  async handleRequest(request: Request): Promise<Response> {
+  async handleRequest(
+    request: Request,
+    _files?: Record<string, UploadedFile | UploadedFile[]>,
+  ): Promise<Response> {
     if (!this.app.bound('router')) {
       return Response.notFound('Not Found');
     }
@@ -135,8 +141,10 @@ export class HttpKernel implements HttpKernelContract {
         method,
         url: path,
         handler: async (rawReq: RawFastifyRequest, reply: FastifyReply) => {
-          const request = this.adaptRequest(rawReq);
           try {
+            const { body, files } = await this.parseRequestBody(rawReq);
+            const request = this.adaptRequest(rawReq, body, files);
+
             const routeMiddleware = routeMiddlewareNames
               .map((name) => this.namedMiddleware.get(name))
               .filter((mw): mw is Middleware => mw !== undefined);
@@ -154,7 +162,69 @@ export class HttpKernel implements HttpKernelContract {
     }
   }
 
-  private adaptRequest(rawReq: RawFastifyRequest): Request {
+  private async parseRequestBody(rawReq: RawFastifyRequest): Promise<{
+    body: Record<string, unknown>;
+    files: Record<string, UploadedFile | UploadedFile[]>;
+  }> {
+    const contentType = (rawReq.headers['content-type'] ?? '').toLowerCase();
+    if (!contentType.includes('multipart/form-data')) {
+      const body =
+        typeof rawReq.body === 'object' && rawReq.body !== null
+          ? (rawReq.body as Record<string, unknown>)
+          : {};
+      return { body, files: {} };
+    }
+
+    const body: Record<string, unknown> = {};
+    const files: Record<string, UploadedFile | UploadedFile[]> = {};
+
+    // @fastify/multipart is registered; rawReq.parts() is available
+    const req = rawReq as RawFastifyRequest & {
+      parts(): AsyncIterable<{
+        type: 'field' | 'file';
+        fieldname: string;
+        value?: unknown;
+        filename?: string;
+        mimetype?: string;
+        toBuffer(): Promise<Buffer>;
+      }>;
+    };
+
+    for await (const part of req.parts()) {
+      if (part.type === 'file') {
+        const buffer = await part.toBuffer();
+        const filename = part.filename ?? '';
+        const ext = filename.includes('.') ? (filename.split('.').pop() ?? '').toLowerCase() : '';
+        const uploadedFile: UploadedFile = {
+          fieldname: part.fieldname,
+          filename,
+          mimetype: part.mimetype ?? 'application/octet-stream',
+          size: buffer.length,
+          toBuffer: async () => buffer,
+          extension: () => ext,
+        };
+        const existing = files[part.fieldname];
+        if (existing !== undefined) {
+          files[part.fieldname] = [
+            ...(Array.isArray(existing) ? existing : [existing]),
+            uploadedFile,
+          ];
+        } else {
+          files[part.fieldname] = uploadedFile;
+        }
+      } else {
+        body[part.fieldname] = part.value;
+      }
+    }
+
+    return { body, files };
+  }
+
+  private adaptRequest(
+    rawReq: RawFastifyRequest,
+    body?: Record<string, unknown>,
+    files?: Record<string, UploadedFile | UploadedFile[]>,
+  ): Request {
     const params =
       typeof rawReq.params === 'object' && rawReq.params !== null
         ? (rawReq.params as Record<string, string>)
@@ -169,10 +239,11 @@ export class HttpKernel implements HttpKernelContract {
       path: rawReq.url.split('?')[0],
       url: rawReq.url,
       headers: rawReq.headers as Record<string, string | string[] | undefined>,
-      body: rawReq.body,
+      body: body ?? rawReq.body,
       query,
       params,
       ip: rawReq.ip,
+      ...(files !== undefined && { files }),
     });
   }
 
@@ -220,6 +291,14 @@ export class HttpKernel implements HttpKernelContract {
   }
 
   private async buildErrorResponse(error: unknown): Promise<Response> {
+    // Call the global exception reporter (Sentry / Bugsnag integration point)
+    if (this.app.bound('exception.reporter')) {
+      const reporter = this.app.make<(e: unknown) => Promise<void>>('exception.reporter');
+      await Promise.resolve(reporter(error)).catch((_reporterError: unknown) => {
+        // Suppress reporter errors so they never mask the original exception.
+      });
+    }
+
     if (this.app.bound('exception.handler')) {
       const handler = this.app.make<ExceptionHandler>('exception.handler');
       const response = await Promise.resolve(handler.handle(error));

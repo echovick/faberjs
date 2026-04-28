@@ -1,2 +1,11 @@
-// /cache — Cache abstraction supporting Redis and in-memory drivers
-export {};
+export { Cache, CacheStore } from './cache';
+export { RateLimiter } from './rate-limiter';
+export { MemoryDriver } from './memory-driver';
+export { RedisDriver } from './redis-driver';
+export type { RedisConfig } from './redis-driver';
+export { DatabaseDriver } from './database-driver';
+export type { DatabaseCacheConfig } from './database-driver';
+export { CacheServiceProvider } from './cache-service-provider';
+export type { CacheConfig } from './cache-service-provider';
+export type { CacheDriver } from './driver';
+export type { CacheLock } from './lock';

@@ -1,7 +1,7 @@
 {
-  "name": "@faber-js/cache",
+  "name": "@faber-js/mail",
   "version": "1.0.29",
-  "description": "FaberJS cache abstraction — Redis, database, and in-memory drivers with locks and rate limiting",
+  "description": "FaberJS mail — Nodemailer-backed Mailable classes with Mail facade, faking, and queued mail",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -22,11 +22,10 @@
   },
   "keywords": [
     "faberjs",
-    "framework",
-    "cache",
-    "redis",
-    "memory",
-    "rate-limiting"
+    "mail",
+    "email",
+    "nodemailer",
+    "smtp"
   ],
   "license": "MIT",
   "publishConfig": {
@@ -36,11 +35,14 @@
     "@faber-js/core": "workspace:^"
   },
   "peerDependencies": {
-    "ioredis": ">=5"
+    "nodemailer": ">=6"
   },
   "peerDependenciesMeta": {
-    "ioredis": {
+    "nodemailer": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.0"
   }
 }

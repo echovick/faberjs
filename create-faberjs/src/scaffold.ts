@@ -266,6 +266,24 @@ function buildFiles(opts: ScaffoldOptions): FileMap {
             `  }`,
             `}`,
           ].join('\n'),
+
+          'database/migrations/0002_create_password_reset_tokens_table.ts': [
+            `import { Migration, Schema } from '@faber-js/orm';`,
+            ``,
+            `export default class CreatePasswordResetTokensTable extends Migration {`,
+            `  async up(): Promise<void> {`,
+            `    await Schema.create('password_reset_tokens', (table) => {`,
+            `      table.string('email').primary();`,
+            `      table.string('token');`,
+            `      table.timestamp('created_at').nullable();`,
+            `    });`,
+            `  }`,
+            ``,
+            `  async down(): Promise<void> {`,
+            `    await Schema.dropIfExists('password_reset_tokens');`,
+            `  }`,
+            `}`,
+          ].join('\n'),
         }
       : {}),
 
@@ -1353,7 +1371,10 @@ export async function scaffoldProject(
   ]);
 
   if (opts.includeAuth) {
-    await writeGroup('Setting up authentication', ['app/providers/AuthServiceProvider.ts']);
+    await writeGroup('Setting up authentication', [
+      'app/providers/AuthServiceProvider.ts',
+      'database/migrations/0002_create_password_reset_tokens_table.ts',
+    ]);
   }
 
   const agentKeys = [...pending.keys()];

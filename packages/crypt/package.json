@@ -1,7 +1,7 @@
 {
-  "name": "@faber-js/cache",
+  "name": "@faber-js/crypt",
   "version": "1.0.29",
-  "description": "FaberJS cache abstraction — Redis, database, and in-memory drivers with locks and rate limiting",
+  "description": "FaberJS cryptography — password hashing and payload encryption",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -23,24 +23,20 @@
   "keywords": [
     "faberjs",
     "framework",
-    "cache",
-    "redis",
-    "memory",
-    "rate-limiting"
+    "hash",
+    "bcrypt",
+    "encryption",
+    "crypt"
   ],
   "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@faber-js/core": "workspace:^"
+    "@faber-js/core": "workspace:^",
+    "bcryptjs": "^3.0.2"
   },
-  "peerDependencies": {
-    "ioredis": ">=5"
-  },
-  "peerDependenciesMeta": {
-    "ioredis": {
-      "optional": true
-    }
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6"
   }
 }

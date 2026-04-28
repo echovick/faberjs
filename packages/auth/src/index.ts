@@ -16,6 +16,17 @@ export type { NewTokenResult } from './token-guard';
 export { Gate } from './gate';
 export { Policy } from './policy';
 
+// ── Password reset ────────────────────────────────────────────────────────────
+export { Password } from './password';
+export { PasswordBroker } from './password-broker';
+export { PasswordResetToken } from './password-reset-token';
+export type {
+  PasswordResetStatus,
+  ResetCallback,
+  ResetMailer,
+  PasswordResetCredentials,
+} from './password';
+
 // ── Shared ────────────────────────────────────────────────────────────────────
 export { UserProvider } from './user-provider';
 export type {

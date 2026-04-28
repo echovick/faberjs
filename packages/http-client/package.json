@@ -1,7 +1,7 @@
 {
-  "name": "@faber-js/cache",
+  "name": "@faber-js/http-client",
   "version": "1.0.29",
-  "description": "FaberJS cache abstraction — Redis, database, and in-memory drivers with locks and rate limiting",
+  "description": "FaberJS HTTP client — fluent fetch wrapper with retries, faking, and recording",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -22,25 +22,13 @@
   },
   "keywords": [
     "faberjs",
-    "framework",
-    "cache",
-    "redis",
-    "memory",
-    "rate-limiting"
+    "http",
+    "fetch",
+    "client",
+    "http-client"
   ],
   "license": "MIT",
   "publishConfig": {
     "access": "public"
-  },
-  "dependencies": {
-    "@faber-js/core": "workspace:^"
-  },
-  "peerDependencies": {
-    "ioredis": ">=5"
-  },
-  "peerDependenciesMeta": {
-    "ioredis": {
-      "optional": true
-    }
   }
 }

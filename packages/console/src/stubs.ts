@@ -180,4 +180,19 @@ export class {{Name}}Channel extends Channel {
   }
 }
 `,
+
+  mail: `import { Mailable } from '@faber-js/mail';
+
+export class {{Name}}Mail extends Mailable {
+  constructor(private readonly to: string) {
+    super();
+  }
+
+  build(): void {
+    this.to(this.to)
+      .subject('{{Name}}')
+      .html('<p>Hello from FaberJS!</p>');
+  }
+}
+`,
 };

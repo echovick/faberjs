@@ -1,5 +1,5 @@
 export { Controller } from './controller';
-export { RouteNotFoundException, route } from './helpers';
+export { RouteNotFoundException, route, URL, SignedMiddleware } from './helpers';
 export { Route } from './route';
 export type { RouteBuilder } from './route-builder';
 export { Router } from './router';

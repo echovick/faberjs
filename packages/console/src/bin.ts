@@ -175,6 +175,15 @@ program
     log.created(result.filePath);
   });
 
+program
+  .command('make:mail <name>')
+  .description('Create a new mailable class')
+  .action((name: string) => {
+    const result = generateFile('mail', name, cwd);
+    writeGeneratedFile(result);
+    log.created(result.filePath);
+  });
+
 // ── db:* commands ──────────────────────────────────────────────────
 
 program
