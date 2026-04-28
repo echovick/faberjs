@@ -80,6 +80,14 @@ export abstract class Model {
     return this.toObject();
   }
 
+  [Symbol.for('nodejs.util.inspect.custom')](): string {
+    const attrs = this.toObject();
+    const pairs = Object.entries(attrs)
+      .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+      .join(', ');
+    return `${this.constructor.name} { ${pairs} }`;
+  }
+
   // ── Instance CRUD ──────────────────────────────────────────────
 
   async save(): Promise<this> {
