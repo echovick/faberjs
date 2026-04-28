@@ -171,9 +171,15 @@ export class HttpKernel implements HttpKernelContract {
       return;
     }
 
-    process.stderr.write(
-      `\x1b[31mERROR\x1b[0m ${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
-    );
+    const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
+
+    if (this.app.bound('log')) {
+      const logger = this.app.make<{ error(msg: string): void }>('log');
+      logger.error(message);
+    } else {
+      process.stderr.write(`\x1b[31mERROR\x1b[0m ${message}\n`);
+    }
+
     await reply.status(500).send({ message: 'Internal Server Error' });
   }
 }

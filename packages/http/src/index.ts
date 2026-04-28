@@ -8,6 +8,7 @@ export {
   TooManyRequestsException,
 } from './exceptions';
 export { HttpKernel } from './kernel';
+export { HttpLogger } from './http-logger';
 export { Pipeline } from './pipeline';
 export { Request } from './request';
 export type { RequestOptions } from './request';

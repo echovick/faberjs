@@ -61,6 +61,14 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Frontend Bridge',
+        items: [
+          { text: 'Introduction', link: '/frontend-bridge/introduction' },
+          { text: 'React', link: '/frontend-bridge/react' },
+          { text: 'Vue', link: '/frontend-bridge/vue' },
+        ],
+      },
+      {
         text: 'CLI Reference',
         items: [{ text: 'Commands', link: '/cli/commands' }],
       },

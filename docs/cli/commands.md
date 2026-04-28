@@ -222,6 +222,39 @@ npx faber make:agent Support
 
 ---
 
+## Frontend Bridge
+
+### `npx faber bridge:types`
+
+Scan `resources/pages/` for page components and generate a `BridgePages` type map. The output file is `resources/types/bridge.generated.ts` by default.
+
+```bash
+npx faber bridge:types
+```
+
+Output:
+
+```
+CREATED     resources/types/bridge.generated.ts
+INFO        Generated 6 page type(s)
+```
+
+The generated file maps each component name (relative to `resources/pages/`) to `Record<string, unknown>`. Edit the generated file or create a `bridge.ts` alongside it to override prop types with your own interfaces.
+
+**Options:**
+
+| Flag              | Default                              | Description                           |
+| ----------------- | ------------------------------------ | ------------------------------------- |
+| `--pages <dir>`   | `resources/pages`                    | Directory to scan for page components |
+| `--out <file>`    | `resources/types/bridge.generated.ts`| Output file path                      |
+
+```bash
+# Custom paths
+npx faber bridge:types --pages src/views --out src/types/pages.ts
+```
+
+---
+
 ## Route inspection
 
 ### `npx faber route:list`
@@ -286,5 +319,6 @@ FaberJS Tinker — application ready
 | `npx faber make:provider <Name>`   | Generate a service provider                   |
 | `npx faber make:command <Name>`    | Generate a custom CLI command                 |
 | `npx faber make:agent <Name>`      | Generate an AI agent                          |
+| `npx faber bridge:types`           | Generate BridgePages type map from pages dir  |
 | `npx faber route:list`             | List all registered routes                    |
 | `npx faber tinker`                 | Start an interactive REPL                     |
