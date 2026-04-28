@@ -21,6 +21,8 @@ export abstract class Model {
   static fillable: readonly string[] = [];
   static primaryKey = 'id';
 
+  declare id: number | string;
+
   #attributes: Record<string, ColumnValue> = {};
   #relations: Record<string, unknown> = {};
   #visibleOverrides: Set<string> | null = null;
