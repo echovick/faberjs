@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/crypt",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "FaberJS cryptography — password hashing and payload encryption",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

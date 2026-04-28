@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/mail",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "FaberJS mail — Nodemailer-backed Mailable classes with Mail facade, faking, and queued mail",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
