@@ -3,29 +3,28 @@ import type { Middleware, NextFunction } from './types';
 import type { Request } from './request';
 import type { Response } from './response';
 
-const METHOD_PAD = 7;
-const PATH_PAD = 36;
+const PATH_PAD = 42;
 
-const METHOD_COLOR: Record<string, (s: string) => string> = {
-  GET: pc.green,
-  POST: pc.cyan,
-  PUT: pc.yellow,
-  PATCH: pc.yellow,
-  DELETE: pc.red,
-  HEAD: pc.dim,
-  OPTIONS: pc.dim,
+const METHOD_BADGE: Record<string, (s: string) => string> = {
+  GET: (s) => pc.bold(pc.green(s)),
+  POST: (s) => pc.bold(pc.cyan(s)),
+  PUT: (s) => pc.bold(pc.yellow(s)),
+  PATCH: (s) => pc.bold(pc.magenta(s)),
+  DELETE: (s) => pc.bold(pc.red(s)),
+  HEAD: (s) => pc.dim(s),
+  OPTIONS: (s) => pc.dim(s),
 };
 
 function colorStatus(status: number): string {
   const s = String(status);
-  if (status >= 500) return pc.red(s);
-  if (status >= 400) return pc.yellow(s);
-  if (status >= 300) return pc.cyan(s);
-  return pc.green(s);
+  if (status >= 500) return pc.bold(pc.red(s));
+  if (status >= 400) return pc.bold(pc.yellow(s));
+  if (status >= 300) return pc.bold(pc.cyan(s));
+  return pc.bold(pc.green(s));
 }
 
 function colorDuration(ms: number): string {
-  const s = `${ms}ms`.padStart(7);
+  const s = `${ms}ms`;
   if (ms > 2000) return pc.red(s);
   if (ms > 500) return pc.yellow(s);
   return pc.dim(s);
@@ -37,10 +36,12 @@ function timestamp(): string {
 
 function writeLine(request: Request, status: number, ms: number): void {
   const method = request.method();
-  const colorMethod = (METHOD_COLOR[method] ?? pc.white)(method.padEnd(METHOD_PAD));
+  const badge = (METHOD_BADGE[method] ?? pc.white)(method.padEnd(7));
   const path = pc.white(request.path().padEnd(PATH_PAD));
+  const arrow = pc.dim('→');
+
   process.stdout.write(
-    `  ${timestamp()}  ${colorMethod}  ${path}  ${colorStatus(status)}  ${colorDuration(ms)}\n`,
+    `  ${timestamp()}  ${badge}  ${path}  ${arrow}  ${colorStatus(status)}  ${colorDuration(ms)}\n`,
   );
 }
 

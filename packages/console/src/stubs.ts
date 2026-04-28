@@ -139,6 +139,20 @@ export class {{Name}}Agent extends Agent {
 }
 `,
 
+  schema: `import { schema, t } from '@faber-js/schema';
+
+export const {{Name}} = schema('{{table}}', {
+  id:        t.id(),
+  // Add your fields here:
+  // name:   t.string().min(2).max(255),
+  // email:  t.email().unique(),
+  // bio:    t.text().nullable(),
+  // role:   t.enum(['admin', 'editor', 'viewer'] as const).default('viewer'),
+  createdAt: t.timestamp().auto(),
+  updatedAt: t.timestamp().auto(),
+});
+`,
+
   view: `/** @jsxImportSource @faber-js/view */
 
 interface Props {

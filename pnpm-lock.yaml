@@ -263,6 +263,34 @@ importers:
         specifier: workspace:^
         version: link:../http
 
+  packages/schema:
+    dependencies:
+      '@faber-js/core':
+        specifier: workspace:^
+        version: link:../core
+      '@faber-js/orm':
+        specifier: workspace:^
+        version: link:../orm
+      '@faber-js/validation':
+        specifier: workspace:^
+        version: link:../validation
+      '@faker-js/faker':
+        specifier: ^9.0.0
+        version: 9.9.0
+      reflect-metadata:
+        specifier: ^0.2.0
+        version: 0.2.2
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: ^7.6.8
+        version: 7.6.13
+      better-sqlite3:
+        specifier: ^9.4.0
+        version: 9.6.0
+      knex:
+        specifier: ^3.1.0
+        version: 3.2.9(better-sqlite3@9.6.0)
+
   packages/testing:
     dependencies:
       '@faber-js/core':
@@ -1056,6 +1084,10 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@faker-js/faker@9.9.0':
+    resolution: {integrity: sha512-OEl393iCOoo/z8bMezRlJu+GlRGlsKbUAN7jKB6LhnKoqKve5DXRpalbItIIcwnCjs1k/FOPjFzcA6Qn+H+YbA==}
+    engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
   '@fastify/ajv-compiler@4.0.5':
     resolution: {integrity: sha512-KoWKW+MhvfTRWL4qrhUwAAZoaChluo0m0vbiJlGMt2GXvL4LVPQEjt8kSpHI3IBq5Rez8fg+XeH3cneztq+C7A==}
@@ -4779,6 +4811,8 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
+
+  '@faker-js/faker@9.9.0': {}
 
   '@fastify/ajv-compiler@4.0.5':
     dependencies:

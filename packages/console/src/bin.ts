@@ -149,6 +149,15 @@ program
   });
 
 program
+  .command('make:schema <name>')
+  .description('Create a new schema-first model declaration')
+  .action((name: string) => {
+    const result = generateFile('schema', name, cwd);
+    writeGeneratedFile(result);
+    log.created(result.filePath);
+  });
+
+program
   .command('make:view <name>')
   .description('Create a new JSX view (e.g. users/index, Dashboard)')
   .action((name: string) => {
