@@ -7,9 +7,15 @@ import {
   faberMigrate,
   faberRollback,
   faberDbStatus,
+  faberDbSeed,
+  faberDbFresh,
+  faberDbRefresh,
   migrateToolDefinition,
   rollbackToolDefinition,
   dbStatusToolDefinition,
+  dbSeedToolDefinition,
+  dbFreshToolDefinition,
+  dbRefreshToolDefinition,
 } from './tools/migrate.js';
 import { faberRouteList, routeListToolDefinition } from './tools/routes.js';
 import { faberDocs, docsToolDefinition } from './tools/docs.js';
@@ -19,6 +25,9 @@ const TOOLS = [
   migrateToolDefinition,
   rollbackToolDefinition,
   dbStatusToolDefinition,
+  dbSeedToolDefinition,
+  dbFreshToolDefinition,
+  dbRefreshToolDefinition,
   routeListToolDefinition,
   docsToolDefinition,
 ];
@@ -55,6 +64,18 @@ export async function startServer(): Promise<void> {
 
         case 'faber_db_status':
           result = await faberDbStatus();
+          break;
+
+        case 'faber_db_seed':
+          result = await faberDbSeed();
+          break;
+
+        case 'faber_db_fresh':
+          result = await faberDbFresh();
+          break;
+
+        case 'faber_db_refresh':
+          result = await faberDbRefresh();
           break;
 
         case 'faber_route_list':

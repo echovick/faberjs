@@ -87,7 +87,7 @@ Selecting a coding agent adds context files that give the agent a full understan
 | `copilot` | `.github/copilot-instructions.md` |
 | `windsurf` | `.windsurfrules` |
 
-The Claude integration wires the `@faber-js/mcp` server automatically — Claude Code will have `faber_make`, `faber_docs`, `faber_migrate`, and `faber_route_list` tools available without any manual setup.
+The Claude integration wires the `@faber-js/mcp` server automatically — Claude Code, Cursor, or Claude Desktop will have nine tools available (`faber_make`, `faber_docs`, `faber_migrate`, `faber_rollback`, `faber_db_status`, `faber_db_seed`, `faber_db_fresh`, `faber_db_refresh`, `faber_route_list`) without any manual setup. See [MCP Server](/digging-deeper/mcp) for the full reference.
 
 ## Application key
 

@@ -59,6 +59,7 @@ export default defineConfig({
           { text: 'Authentication', link: '/digging-deeper/auth' },
           { text: 'Views', link: '/digging-deeper/views' },
           { text: 'AI Agents', link: '/digging-deeper/ai-agents' },
+          { text: 'MCP Server', link: '/digging-deeper/mcp' },
           { text: 'Schema-first Models', link: '/digging-deeper/schema' },
           { text: 'Real-Time Channels', link: '/digging-deeper/channels' },
           { text: 'DevTools Dashboard', link: '/digging-deeper/devtools' },

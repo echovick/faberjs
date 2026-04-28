@@ -31,17 +31,29 @@ function appKey(): string {
   return key;
 }
 
-function signUrl(url: string): string {
-  return createHmac('sha256', appKey()).update(url).digest('hex');
+function signUrl(canonical: string): string {
+  return createHmac('sha256', appKey()).update(canonical).digest('hex');
+}
+
+// Build a canonical signing string: pathname + sorted query params, excluding _signature.
+// Using URLSearchParams normalises encoding and sorting removes ordering ambiguity so that
+// sign and verify always operate on an identical byte sequence regardless of param order or
+// percent-encoding variations in the incoming URL.
+function buildCanonical(urlString: string): string {
+  const wrapped = urlString.startsWith('http') ? urlString : `http://localhost${urlString}`;
+  const urlObj = new globalThis.URL(wrapped);
+  urlObj.searchParams.delete('_signature');
+  urlObj.searchParams.sort();
+  return urlObj.pathname + (urlObj.search || '');
 }
 
 export const URL = {
   signedRoute(name: string, params: Record<string, string | number> = {}): string {
     const base = route(name, params);
     const separator = base.includes('?') ? '&' : '?';
-    const unsigned = `${base}${separator}_signed=1`;
-    const signature = signUrl(unsigned);
-    return `${unsigned}&_signature=${signature}`;
+    const withSigned = `${base}${separator}_signed=1`;
+    const signature = signUrl(buildCanonical(withSigned));
+    return `${withSigned}&_signature=${signature}`;
   },
 
   temporarySignedRoute(
@@ -52,26 +64,28 @@ export const URL = {
     const base = route(name, params);
     const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
     const separator = base.includes('?') ? '&' : '?';
-    const unsigned = `${base}${separator}_signed=1&_expires=${expiresAt}`;
-    const signature = signUrl(unsigned);
-    return `${unsigned}&_signature=${signature}`;
+    const withParams = `${base}${separator}_signed=1&_expires=${expiresAt}`;
+    const signature = signUrl(buildCanonical(withParams));
+    return `${withParams}&_signature=${signature}`;
   },
 
   hasValidSignature(requestUrl: string): boolean {
     try {
-      const urlObj = new globalThis.URL(
-        requestUrl.startsWith('http') ? requestUrl : `http://localhost${requestUrl}`,
-      );
+      const wrapped = requestUrl.startsWith('http') ? requestUrl : `http://localhost${requestUrl}`;
+      const urlObj = new globalThis.URL(wrapped);
       const signature = urlObj.searchParams.get('_signature');
       if (!signature) return false;
 
       const expires = urlObj.searchParams.get('_expires');
       if (expires && parseInt(expires, 10) < Math.floor(Date.now() / 1000)) return false;
 
-      urlObj.searchParams.delete('_signature');
-      const unsigned = urlObj.pathname + (urlObj.search ? urlObj.search : '');
-      const expected = signUrl(unsigned);
-      return timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'));
+      const canonical = buildCanonical(requestUrl);
+      const expected = signUrl(canonical);
+
+      const sigBuf = Buffer.from(signature, 'hex');
+      const expBuf = Buffer.from(expected, 'hex');
+      if (sigBuf.length === 0 || sigBuf.length !== expBuf.length) return false;
+      return timingSafeEqual(sigBuf, expBuf);
     } catch {
       return false;
     }

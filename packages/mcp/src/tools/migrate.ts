@@ -57,6 +57,33 @@ export async function faberDbStatus(): Promise<string> {
   }
 }
 
+export async function faberDbSeed(): Promise<string> {
+  try {
+    return await runFaber(['db:seed']);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return `db:seed failed:\n${message}`;
+  }
+}
+
+export async function faberDbFresh(): Promise<string> {
+  try {
+    return await runFaber(['db:fresh']);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return `db:fresh failed:\n${message}`;
+  }
+}
+
+export async function faberDbRefresh(): Promise<string> {
+  try {
+    return await runFaber(['db:refresh']);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return `db:refresh failed:\n${message}`;
+  }
+}
+
 export const migrateToolDefinition = {
   name: 'faber_migrate',
   description: 'Run all pending FaberJS database migrations.',
@@ -73,5 +100,25 @@ export const dbStatusToolDefinition = {
   name: 'faber_db_status',
   description:
     'Show the status of all FaberJS database migrations (which have run, which are pending).',
+  inputSchema: { type: 'object', properties: {} },
+} as const;
+
+export const dbSeedToolDefinition = {
+  name: 'faber_db_seed',
+  description: 'Run all FaberJS database seeders to populate the database with seed data.',
+  inputSchema: { type: 'object', properties: {} },
+} as const;
+
+export const dbFreshToolDefinition = {
+  name: 'faber_db_fresh',
+  description:
+    'Drop all tables and re-run every migration from scratch. Destructive — wipes all data.',
+  inputSchema: { type: 'object', properties: {} },
+} as const;
+
+export const dbRefreshToolDefinition = {
+  name: 'faber_db_refresh',
+  description:
+    'Roll back every migration, then re-run them. Preserves the database itself; resets data.',
   inputSchema: { type: 'object', properties: {} },
 } as const;

@@ -12,7 +12,11 @@ const VALID_TYPES = [
   'provider',
   'command',
   'agent',
-  'validation',
+  'schema',
+  'view',
+  'channel',
+  'mail',
+  'policy',
 ];
 
 function runCommand(args: string[]): Promise<string> {
