@@ -1,3 +1,5 @@
+import { log } from './ui';
+
 export abstract class Command {
   abstract readonly signature: string;
   abstract readonly description: string;
@@ -5,19 +7,16 @@ export abstract class Command {
   abstract handle(...args: unknown[]): Promise<void> | void;
 
   info(message: string): void {
-    process.stdout.write(`\x1b[36mINFO\x1b[0m  ${message}\n`);
+    log.info(message);
   }
-
   success(message: string): void {
-    process.stdout.write(`\x1b[32mDONE\x1b[0m  ${message}\n`);
+    log.done(message);
   }
-
   warn(message: string): void {
-    process.stdout.write(`\x1b[33mWARN\x1b[0m  ${message}\n`);
+    log.warn(message);
   }
-
   error(message: string): void {
-    process.stderr.write(`\x1b[31mERROR\x1b[0m ${message}\n`);
+    log.error(message);
   }
 
   line(message = ''): void {

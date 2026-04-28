@@ -39,6 +39,7 @@
     "@faber-js/http": "workspace:^",
     "@faber-js/orm": "workspace:^",
     "@faber-js/router": "workspace:^",
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "picocolors": "^1.1.1"
   }
 }

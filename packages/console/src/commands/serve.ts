@@ -1,9 +1,17 @@
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
+import pc from 'picocolors';
+import { printBanner, log } from '../ui';
 
-export function startServer(cwd: string, port = 3000): void {
+export function startServer(cwd: string, port = 3000, version?: string): void {
   const entry = join(cwd, 'bootstrap', 'app.ts');
-  process.stdout.write(`\x1b[36mINFO\x1b[0m  Starting server on port ${port}...\n`);
+
+  printBanner(version);
+  process.stdout.write(
+    `  ${pc.dim('─'.repeat(44))}\n` +
+      `  ${pc.dim('local')}    ${pc.cyan(`http://localhost:${port}`)}\n` +
+      `  ${pc.dim('─'.repeat(44))}\n\n`,
+  );
 
   const child = spawn(
     'node',
@@ -16,7 +24,7 @@ export function startServer(cwd: string, port = 3000): void {
   );
 
   child.on('error', (err) => {
-    process.stderr.write(`\x1b[31mERROR\x1b[0m Failed to start server: ${err.message}\n`);
+    log.error(`Failed to start server: ${err.message}`);
     process.exit(1);
   });
 

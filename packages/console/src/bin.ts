@@ -1,27 +1,26 @@
 import { program } from 'commander';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import {
   generateFile,
   makeMigrationClassName,
   makeMigrationFileName,
   writeGeneratedFile,
 } from './generator';
+import { bannerLines, getVersion, log } from './ui';
 
-function getVersion(): string {
-  try {
-    const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8')) as {
-      version: string;
-    };
-    return pkg.version;
-  } catch {
-    return '0.0.0';
-  }
-}
-
+const version = getVersion();
 const cwd = process.cwd();
 
-program.name('faber').description('FaberJS CLI — the Artisan equivalent').version(getVersion());
+program
+  .name('faber')
+  .description('FaberJS CLI — the Artisan equivalent')
+  .version(version)
+  .addHelpText('beforeAll', bannerLines(version));
+
+// Show banner + help when run with no subcommand
+program.action(() => {
+  process.stdout.write(bannerLines(version) + '\n');
+  program.help({ error: false });
+});
 
 // ── make:* generators ──────────────────────────────────────────────
 
@@ -31,7 +30,7 @@ program
   .action((name: string) => {
     const result = generateFile('controller', name, cwd);
     writeGeneratedFile(result);
-    process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
+    log.created(result.filePath);
   });
 
 program
@@ -40,7 +39,7 @@ program
   .action((name: string) => {
     const result = generateFile('service', name, cwd);
     writeGeneratedFile(result);
-    process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
+    log.created(result.filePath);
   });
 
 program
@@ -50,7 +49,7 @@ program
   .action((name: string, options: { migration?: boolean }) => {
     const modelResult = generateFile('model', name, cwd);
     writeGeneratedFile(modelResult);
-    process.stdout.write(`\x1b[32mCREATED\x1b[0m ${modelResult.filePath}\n`);
+    log.created(modelResult.filePath);
 
     if (options.migration) {
       const snake = name
@@ -66,7 +65,7 @@ program
       });
       const finalPath = migResult.filePath.replace(/[^/\\]+\.ts$/, fileName);
       writeGeneratedFile({ filePath: finalPath, content: migResult.content });
-      process.stdout.write(`\x1b[32mCREATED\x1b[0m ${finalPath}\n`);
+      log.created(finalPath);
     }
   });
 
@@ -82,7 +81,7 @@ program
     });
     const finalPath = result.filePath.replace(/[^/\\]+\.ts$/, fileName);
     writeGeneratedFile({ filePath: finalPath, content: result.content });
-    process.stdout.write(`\x1b[32mCREATED\x1b[0m ${finalPath}\n`);
+    log.created(finalPath);
   });
 
 program
@@ -91,7 +90,7 @@ program
   .action((name: string) => {
     const result = generateFile('job', name, cwd);
     writeGeneratedFile(result);
-    process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
+    log.created(result.filePath);
   });
 
 program
@@ -100,7 +99,7 @@ program
   .action((name: string) => {
     const result = generateFile('event', name, cwd);
     writeGeneratedFile(result);
-    process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
+    log.created(result.filePath);
   });
 
 program
@@ -109,7 +108,7 @@ program
   .action((name: string) => {
     const result = generateFile('listener', name, cwd);
     writeGeneratedFile(result);
-    process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
+    log.created(result.filePath);
   });
 
 program
@@ -118,7 +117,7 @@ program
   .action((name: string) => {
     const result = generateFile('middleware', name, cwd);
     writeGeneratedFile(result);
-    process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
+    log.created(result.filePath);
   });
 
 program
@@ -127,7 +126,7 @@ program
   .action((name: string) => {
     const result = generateFile('command', name, cwd);
     writeGeneratedFile(result);
-    process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
+    log.created(result.filePath);
   });
 
 program
@@ -136,7 +135,7 @@ program
   .action((name: string) => {
     const result = generateFile('provider', name, cwd);
     writeGeneratedFile(result);
-    process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
+    log.created(result.filePath);
   });
 
 program
@@ -145,7 +144,7 @@ program
   .action((name: string) => {
     const result = generateFile('agent', name, cwd);
     writeGeneratedFile(result);
-    process.stdout.write(`\x1b[32mCREATED\x1b[0m ${result.filePath}\n`);
+    log.created(result.filePath);
   });
 
 // ── db:* commands ──────────────────────────────────────────────────
@@ -190,7 +189,7 @@ program
   .option('-p, --port <port>', 'Port to listen on', '3000')
   .action(async (options: { port: string }) => {
     const { startServer } = await import('./commands/serve');
-    startServer(cwd, Number(options.port));
+    startServer(cwd, Number(options.port), version);
   });
 
 // ── route:list ─────────────────────────────────────────────────────
