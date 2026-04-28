@@ -1,0 +1,44 @@
+{
+  "name": "@faber-js/bridge-vue",
+  "version": "1.0.20",
+  "description": "FaberJS bridge adapter for Vue 3 — createBridgeApp, usePage, useForm, BridgeLink, BridgeHead",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "keywords": [
+    "faberjs",
+    "bridge",
+    "vue",
+    "vue3",
+    "spa",
+    "inertia"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@faber-js/bridge": "workspace:^"
+  },
+  "peerDependencies": {
+    "vue": ">=3.0.0"
+  },
+  "devDependencies": {
+    "vue": "^3.0.0"
+  }
+}
