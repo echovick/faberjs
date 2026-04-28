@@ -7,7 +7,7 @@ import type {
   ValidationResult,
   ValidationRules,
 } from './types';
-import { UniqueRule } from './rule-builder';
+import { ExistsRule, UniqueRule } from './rule-builder';
 
 // Generic DB query builder interface — intentionally not tied to any specific ORM/knex type.
 // The consumer wires up the concrete implementation via setDbConnectionProvider().
@@ -78,6 +78,9 @@ export class Validator {
       if (rule instanceof UniqueRule) {
         return this.#applyUniqueRule(field, rule, value);
       }
+      if (rule instanceof ExistsRule) {
+        return this.#applyExistsRule(field, rule, value);
+      }
       return rule.validate(field, value, this.#data);
     }
 
@@ -120,6 +123,13 @@ export class Validator {
         const column = parts[1] ?? field;
         if (!table) return `The ${field} rule 'unique' requires a table name.`;
         return this.#unique(field, value, table, column);
+      }
+      case 'exists': {
+        const parts = param.split(',');
+        const table = parts[0];
+        const column = parts[1] ?? field;
+        if (!table) return `The ${field} rule 'exists' requires a table name.`;
+        return this.#exists(field, value, table, column);
       }
       case 'regex':
         return this.#regexString(field, value, param);
@@ -267,6 +277,27 @@ export class Validator {
     const rows = await query.limit(1).select('id');
     if (rows.length > 0) return `The ${field} has already been taken.`;
     return null;
+  }
+
+  async #exists(
+    field: string,
+    value: RuleValue,
+    table: string,
+    column: string,
+  ): Promise<string | null> {
+    if (value === null || value === undefined || value === '') return null;
+    if (!dbProvider) return null;
+    const rows = await dbProvider(table).where(column, value).limit(1).select('id');
+    if (rows.length === 0) return `The selected ${field} is invalid.`;
+    return null;
+  }
+
+  async #applyExistsRule(
+    field: string,
+    rule: ExistsRule,
+    value: RuleValue,
+  ): Promise<string | null> {
+    return this.#exists(field, value, rule.table, rule.column);
   }
 
   #regexString(field: string, value: RuleValue, pattern: string): string | null {

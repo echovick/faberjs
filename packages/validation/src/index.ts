@@ -1,4 +1,4 @@
-export { Rule } from './rule-builder';
+export { Rule, UniqueRule, ExistsRule } from './rule-builder';
 export { Validator, setDbConnectionProvider } from './validator';
 export { FormRequest } from './form-request';
 export { validate } from './validate';

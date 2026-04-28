@@ -5,6 +5,10 @@ export class Rule {
     return new UniqueRule(table, column);
   }
 
+  static exists(table: string, column = 'id'): ExistsRule {
+    return new ExistsRule(table, column);
+  }
+
   static regex(pattern: RegExp): RegexRule {
     return new RegexRule(pattern);
   }
@@ -46,6 +50,30 @@ export class UniqueRule implements RuleObject {
     // Actual DB check is delegated to the Validator engine which intercepts UniqueRule directly.
     // This fallback is used only when there is no DB provider configured.
     return `The ${field} has already been taken.`;
+  }
+}
+
+export class ExistsRule implements RuleObject {
+  readonly name = 'exists';
+  readonly #table: string;
+  readonly #column: string;
+
+  constructor(table: string, column: string) {
+    this.#table = table;
+    this.#column = column;
+  }
+
+  get table(): string {
+    return this.#table;
+  }
+
+  get column(): string {
+    return this.#column;
+  }
+
+  async validate(field: string, _value: RuleValue, _data: InputData): Promise<string | null> {
+    // Actual DB check delegated to the Validator engine which intercepts ExistsRule directly.
+    return `The selected ${field} is invalid.`;
   }
 }
 
