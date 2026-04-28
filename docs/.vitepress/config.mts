@@ -60,7 +60,9 @@ export default defineConfig({
           { text: 'Views', link: '/digging-deeper/views' },
           { text: 'AI Agents', link: '/digging-deeper/ai-agents' },
           { text: 'Schema-first Models', link: '/digging-deeper/schema' },
+          { text: 'Real-Time Channels', link: '/digging-deeper/channels' },
           { text: 'DevTools Dashboard', link: '/digging-deeper/devtools' },
+          { text: 'Runtime Adapters', link: '/digging-deeper/adapters' },
         ],
       },
       {
