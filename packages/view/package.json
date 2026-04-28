@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/view",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "FaberJS server-side JSX view renderer — a Blade alternative with type-safe props and auto-escaping",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

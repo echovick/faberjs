@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/adapters",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "FaberJS pluggable HTTP adapters for Node.js, Bun, AWS Lambda, and Cloudflare Workers",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

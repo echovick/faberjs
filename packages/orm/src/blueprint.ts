@@ -114,6 +114,22 @@ export class Blueprint {
     return new ColumnDefinition(this.#table.json(column));
   }
 
+  enum(column: string, values: string[]): ColumnDefinition {
+    return new ColumnDefinition(this.#table.enu(column, values));
+  }
+
+  date(column: string): ColumnDefinition {
+    return new ColumnDefinition(this.#table.date(column));
+  }
+
+  float(column: string, precision = 8, scale = 2): ColumnDefinition {
+    return new ColumnDefinition(this.#table.float(column, precision, scale));
+  }
+
+  uuid(column: string): ColumnDefinition {
+    return new ColumnDefinition(this.#table.uuid(column));
+  }
+
   timestamp(column: string): ColumnDefinition {
     return new ColumnDefinition(this.#table.timestamp(column, { useTz: false }).nullable());
   }

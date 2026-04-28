@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/support",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "FaberJS support — Collection, Str, Arr, Pipeline, and utility helpers",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

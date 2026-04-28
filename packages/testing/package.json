@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/testing",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "FaberJS test helpers, HTTP test client, and database assertions",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
