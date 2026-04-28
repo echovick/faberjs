@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/core",
-  "version": "1.0.24",
+  "version": "1.0.26",
   "description": "FaberJS app kernel, service container, service providers, and facades",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

@@ -59,6 +59,8 @@ export default defineConfig({
           { text: 'Authentication', link: '/digging-deeper/auth' },
           { text: 'Views', link: '/digging-deeper/views' },
           { text: 'AI Agents', link: '/digging-deeper/ai-agents' },
+          { text: 'Schema-first Models', link: '/digging-deeper/schema' },
+          { text: 'DevTools Dashboard', link: '/digging-deeper/devtools' },
         ],
       },
       {

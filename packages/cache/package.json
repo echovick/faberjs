@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/cache",
-  "version": "1.0.0",
+  "version": "1.0.26",
   "description": "FaberJS cache abstraction supporting Redis and in-memory drivers",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
