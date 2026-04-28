@@ -5,11 +5,18 @@ import { Request } from './request';
 import type { Response } from './response';
 import { Pipeline } from './pipeline';
 import { HttpException } from './exceptions';
-import type { ControllerAction, HttpKernelContract, Middleware, RouterContract } from './types';
+import type {
+  ControllerAction,
+  ExceptionHandler,
+  HttpKernelContract,
+  Middleware,
+  RouterContract,
+} from './types';
 
 export class HttpKernel implements HttpKernelContract {
   private readonly fastify: FastifyInstance;
   private readonly globalMiddleware: Middleware[] = [];
+  private readonly namedMiddleware = new Map<string, Middleware>();
   private address = '';
 
   constructor(private readonly app: ApplicationContract) {
@@ -18,6 +25,11 @@ export class HttpKernel implements HttpKernelContract {
 
   use(middleware: Middleware): this {
     this.globalMiddleware.push(middleware);
+    return this;
+  }
+
+  alias(name: string, middleware: Middleware): this {
+    this.namedMiddleware.set(name, middleware);
     return this;
   }
 
@@ -44,14 +56,18 @@ export class HttpKernel implements HttpKernelContract {
 
   private registerRoutes(router: RouterContract): void {
     for (const route of router.getRoutes()) {
-      const { method, path, handler } = route;
+      const { method, path, handler, middleware: routeMiddlewareNames } = route;
       this.fastify.route({
         method,
         url: path,
         handler: async (rawReq: RawFastifyRequest, reply: FastifyReply) => {
           const request = this.adaptRequest(rawReq);
           try {
-            const pipeline = new Pipeline([...this.globalMiddleware], (req) =>
+            const routeMiddleware = routeMiddlewareNames
+              .map((name) => this.namedMiddleware.get(name))
+              .filter((mw): mw is Middleware => mw !== undefined);
+
+            const pipeline = new Pipeline([...this.globalMiddleware, ...routeMiddleware], (req) =>
               this.invokeHandler(handler, req),
             );
             const res = await pipeline.send(request);
@@ -125,12 +141,33 @@ export class HttpKernel implements HttpKernelContract {
   }
 
   private async handleError(reply: FastifyReply, error: unknown): Promise<void> {
+    // Allow apps to intercept all errors via a custom exception handler
+    if (this.app.bound('exception.handler')) {
+      const handler = this.app.make<ExceptionHandler>('exception.handler');
+      const response = await Promise.resolve(handler.handle(error));
+      if (response !== null) {
+        await this.sendResponse(reply, response);
+        return;
+      }
+    }
+
     if (error instanceof HttpException) {
       const body: Record<string, unknown> = { message: error.message };
       if (error.data !== undefined) {
         body['errors'] = error.data;
       }
       await reply.status(error.statusCode).send(body);
+      return;
+    }
+
+    // Handle ApplicationException (from @faber-js/core Service helpers) and any
+    // error carrying a statusCode property
+    if (error instanceof Error && 'statusCode' in error) {
+      const statusCode = (error as { statusCode: number }).statusCode;
+      const data = (error as { data?: unknown }).data;
+      const body: Record<string, unknown> = { message: error.message };
+      if (data !== undefined) body['errors'] = data;
+      await reply.status(statusCode).send(body);
       return;
     }
 

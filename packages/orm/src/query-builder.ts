@@ -1,3 +1,4 @@
+import type { Knex } from 'knex';
 import type {
   ColumnValue,
   ModelStatics,
@@ -35,10 +36,22 @@ export class QueryBuilder<T extends ModelLike> {
   #offsetValue: number | null = null;
   #includeTrashed = false;
   #eagerLoads: string[] = [];
+  #selectedColumns: string[] | null = null;
+  #trx: Knex.Transaction | null = null;
 
   constructor(ctor: ModelStatics<T>) {
     this.#ModelCtor = ctor;
     this.#tableName = ctor.table;
+  }
+
+  usingTransaction(trx: Knex.Transaction): this {
+    this.#trx = trx;
+    return this;
+  }
+
+  select(...columns: string[]): this {
+    this.#selectedColumns = columns.length > 0 ? columns : null;
+    return this;
   }
 
   where(column: string, operatorOrValue: WhereOperator | ColumnValue, value?: ColumnValue): this {
@@ -85,7 +98,7 @@ export class QueryBuilder<T extends ModelLike> {
   }
 
   async get(): Promise<T[]> {
-    const rows = await this.#buildQuery().select('*');
+    const rows = await this.#buildQuery().select(this.#selectedColumns ?? ['*']);
     const models = (rows as Array<Record<string, ColumnValue>>).map((row) => this.#hydrate(row));
     if (this.#eagerLoads.length > 0) {
       await this.#loadRelations(models as unknown as ModelLike[]);
@@ -94,7 +107,9 @@ export class QueryBuilder<T extends ModelLike> {
   }
 
   async first(): Promise<T | null> {
-    const rows = await this.#buildQuery().limit(1).select('*');
+    const rows = await this.#buildQuery()
+      .limit(1)
+      .select(this.#selectedColumns ?? ['*']);
     const arr = rows as Array<Record<string, ColumnValue>>;
     const first = arr[0];
     if (!first) return null;
@@ -121,8 +136,8 @@ export class QueryBuilder<T extends ModelLike> {
     return Number(row['avg']);
   }
 
-  async update(attrs: Record<string, ColumnValue>): Promise<void> {
-    await this.#buildQuery().update(attrs);
+  async update(attrs: Record<string, ColumnValue>): Promise<number> {
+    return this.#buildQuery().update(attrs) as Promise<number>;
   }
 
   async delete(): Promise<void> {
@@ -133,29 +148,47 @@ export class QueryBuilder<T extends ModelLike> {
     }
   }
 
-  async paginate(perPage = 15, page = 1): Promise<PaginationResult<T>> {
+  async create(attrs: Record<string, ColumnValue>): Promise<T> {
+    const db = this.#trx ?? getConnection();
+    const result = await db(this.#tableName).insert(attrs);
+    const insertedId = Array.isArray(result) ? result[0] : result;
+    const pk = this.#ModelCtor.primaryKey;
+    const hydrated =
+      insertedId !== undefined ? { ...attrs, [pk]: insertedId as ColumnValue } : attrs;
+    const instance = new this.#ModelCtor();
+    instance.fill(hydrated);
+    instance.exists = true;
+    return instance;
+  }
+
+  async paginate(perPage = 15, page = 1, baseUrl?: string): Promise<PaginationResult<T>> {
     const total = await this.count();
     const lastPage = Math.max(1, Math.ceil(total / perPage));
     const rows = await this.#buildQuery()
       .limit(perPage)
       .offset((page - 1) * perPage)
-      .select('*');
+      .select(this.#selectedColumns ?? ['*']);
     const data = (rows as Array<Record<string, ColumnValue>>).map((row) => this.#hydrate(row));
+
+    const buildUrl = baseUrl
+      ? (p: number) => `${baseUrl}?page=${p}&per_page=${perPage}`
+      : () => null;
+
     return {
       data,
       meta: { current_page: page, last_page: lastPage, per_page: perPage, total },
       links: {
-        first: null,
-        last: null,
-        prev: page > 1 ? null : null,
-        next: page < lastPage ? null : null,
+        first: buildUrl(1),
+        last: buildUrl(lastPage),
+        prev: page > 1 ? buildUrl(page - 1) : null,
+        next: page < lastPage ? buildUrl(page + 1) : null,
       },
     };
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   #buildQuery() {
-    const db = getConnection();
+    const db = this.#trx ?? getConnection();
     let q = db(this.#tableName);
 
     if (this.#ModelCtor.softDeletes && !this.#includeTrashed) {

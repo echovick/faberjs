@@ -5,6 +5,7 @@ export { Container } from './container';
 export { Injectable, Inject } from './decorators';
 export { Discoverer } from './discoverer';
 export {
+  ApplicationException,
   ApplicationNotInitializedException,
   BindingNotFoundException,
   NotInjectableException,

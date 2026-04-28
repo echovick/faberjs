@@ -16,6 +16,7 @@ export { HttpServiceProvider } from './http-service-provider';
 export type {
   AuthUser,
   ControllerAction,
+  ExceptionHandler,
   HttpKernelContract,
   HttpMethod,
   Middleware,

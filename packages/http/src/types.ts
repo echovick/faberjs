@@ -59,8 +59,13 @@ export interface PaginatedResponse<T = unknown> {
   readonly links: PaginationLinks;
 }
 
+export interface ExceptionHandler {
+  handle(error: unknown): Promise<Response | null> | Response | null;
+}
+
 export interface HttpKernelContract {
   use(middleware: Middleware): this;
+  alias(name: string, middleware: Middleware): this;
   listen(port: number, host?: string): Promise<void>;
   close(): Promise<void>;
 }

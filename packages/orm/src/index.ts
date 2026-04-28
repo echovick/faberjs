@@ -1,4 +1,6 @@
 export { createConnection, getConnection, destroyConnection } from './connection';
+export { DB } from './db';
+export type { TransactionCallback } from './db';
 export { OrmServiceProvider } from './orm-service-provider';
 export { Model } from './model';
 export { Schema } from './schema';

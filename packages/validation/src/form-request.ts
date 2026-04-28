@@ -46,6 +46,7 @@ export abstract class FormRequest {
       throw new ValidationException(result.errors);
     }
 
+    this.#request.setValidated(data);
     return data;
   }
 }

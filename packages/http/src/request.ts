@@ -22,6 +22,7 @@ export class Request {
   readonly #query: Record<string, string | string[] | undefined>;
   readonly #params: Record<string, string>;
   readonly #ip: string;
+  #validated: Record<string, unknown> | null = null;
 
   constructor(options: RequestOptions) {
     this.#method = options.method.toUpperCase();
@@ -93,6 +94,28 @@ export class Request {
     if (value === null || value === undefined) return false;
     if (typeof value === 'string') return value.trim().length > 0;
     return true;
+  }
+
+  query(): Record<string, string | string[] | undefined>;
+  query(key: string): string | string[] | undefined;
+  query(key: string, fallback: string): string;
+  query(key?: string, fallback?: string | string[]): unknown {
+    if (key === undefined) return { ...this.#query };
+    const value = this.#query[key];
+    return value !== undefined ? value : (fallback ?? null);
+  }
+
+  setValidated(data: Record<string, unknown>): void {
+    this.#validated = data;
+  }
+
+  validated<T = Record<string, unknown>>(): T {
+    if (this.#validated === null) {
+      throw new Error(
+        'Request data has not been validated. Call validate() on a FormRequest first.',
+      );
+    }
+    return this.#validated as T;
   }
 
   bearerToken(): string | null {

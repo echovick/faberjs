@@ -36,3 +36,15 @@ export class ApplicationNotInitializedException extends Error {
     this.name = 'ApplicationNotInitializedException';
   }
 }
+
+export class ApplicationException extends Error {
+  readonly statusCode: number;
+  readonly data?: unknown;
+
+  constructor(message: string, statusCode = 500, data?: unknown) {
+    super(message);
+    this.name = new.target.name;
+    this.statusCode = statusCode;
+    this.data = data;
+  }
+}

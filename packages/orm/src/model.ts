@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import type { Knex } from 'knex';
 import { Injectable } from '@faber-js/core';
 import type {
   ColumnValue,
@@ -22,6 +23,8 @@ export abstract class Model {
 
   #attributes: Record<string, ColumnValue> = {};
   #relations: Record<string, unknown> = {};
+  #visibleOverrides: Set<string> | null = null;
+  #additionalHidden: Set<string> | null = null;
   exists = false;
 
   fill(attrs: Record<string, ColumnValue>): this {
@@ -47,13 +50,28 @@ export abstract class Model {
     return this;
   }
 
+  makeVisible(...keys: string[]): this {
+    this.#visibleOverrides = new Set(keys);
+    this.#additionalHidden = null;
+    return this;
+  }
+
+  makeHidden(...keys: string[]): this {
+    this.#additionalHidden = new Set(keys);
+    this.#visibleOverrides = null;
+    return this;
+  }
+
   toObject(): Record<string, ColumnValue> {
-    const hidden = (this.constructor as typeof Model).hidden;
+    const staticHidden = new Set((this.constructor as typeof Model).hidden);
     const result: Record<string, ColumnValue> = {};
     for (const [key, value] of Object.entries(this.#attributes)) {
-      if (value !== undefined && !hidden.includes(key)) {
-        result[key] = value;
-      }
+      if (value === undefined) continue;
+      const isStaticHidden = staticHidden.has(key);
+      const isVisibleOverride = this.#visibleOverrides?.has(key) ?? false;
+      const isAdditionallyHidden = this.#additionalHidden?.has(key) ?? false;
+      if ((isStaticHidden && !isVisibleOverride) || isAdditionallyHidden) continue;
+      result[key] = value;
     }
     return result;
   }
@@ -151,6 +169,12 @@ export abstract class Model {
 
   // ── Static methods ─────────────────────────────────────────────
 
+  static query<T extends Model>(this: ModelStatics<T>, trx?: Knex.Transaction): QueryBuilder<T> {
+    const qb = new QueryBuilder<T>(this);
+    if (trx) return qb.usingTransaction(trx);
+    return qb;
+  }
+
   static async find<T extends Model>(this: ModelStatics<T>, id: ColumnValue): Promise<T | null> {
     const ctor = this as unknown as typeof Model;
     const db = getConnection();
@@ -185,6 +209,50 @@ export abstract class Model {
     (instance as unknown as Model).fill(attrs);
     await (instance as unknown as Model).save();
     return instance;
+  }
+
+  static async firstOrCreate<T extends Model>(
+    this: ModelStatics<T>,
+    where: Record<string, ColumnValue>,
+    attrs?: Record<string, ColumnValue>,
+  ): Promise<T> {
+    let qb = new QueryBuilder<T>(this);
+    for (const [key, value] of Object.entries(where)) {
+      qb = qb.where(key, value);
+    }
+    const existing = await qb.first();
+    if (existing) return existing;
+    const ctor = this as unknown as typeof Model;
+    return ctor.create.call(this, { ...where, ...(attrs ?? {}) }) as Promise<T>;
+  }
+
+  static async updateOrCreate<T extends Model>(
+    this: ModelStatics<T>,
+    where: Record<string, ColumnValue>,
+    attrs: Record<string, ColumnValue>,
+  ): Promise<T> {
+    let qb = new QueryBuilder<T>(this);
+    for (const [key, value] of Object.entries(where)) {
+      qb = qb.where(key, value);
+    }
+    const existing = await qb.first();
+    if (existing) {
+      await (existing as unknown as Model).update(attrs);
+      return existing;
+    }
+    const ctor = this as unknown as typeof Model;
+    return ctor.create.call(this, { ...where, ...attrs }) as Promise<T>;
+  }
+
+  static async upsert<T extends Model>(
+    this: ModelStatics<T>,
+    values: Array<Record<string, ColumnValue>>,
+    uniqueBy: string | string[],
+  ): Promise<void> {
+    const ctor = this as unknown as typeof Model;
+    const db = getConnection();
+    const uniqueByArray = Array.isArray(uniqueBy) ? uniqueBy : [uniqueBy];
+    await db(ctor.table).insert(values).onConflict(uniqueByArray).merge();
   }
 
   static where<T extends Model>(
@@ -241,7 +309,8 @@ export abstract class Model {
     this: ModelStatics<T>,
     perPage = 15,
     page = 1,
+    baseUrl?: string,
   ): Promise<PaginationResult<T>> {
-    return new QueryBuilder<T>(this).paginate(perPage, page);
+    return new QueryBuilder<T>(this).paginate(perPage, page, baseUrl);
   }
 }
