@@ -35,8 +35,8 @@ function num(v: ColumnValue | undefined): number {
   return Number(v ?? 0);
 }
 
-beforeAll(() => {
-  createConnection({ client: 'better-sqlite3', connection: { filename: ':memory:' } });
+beforeAll(async () => {
+  await createConnection({ client: 'better-sqlite3', connection: { filename: ':memory:' } });
 });
 
 afterAll(async () => {

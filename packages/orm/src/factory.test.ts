@@ -21,8 +21,8 @@ class UserFactory extends Factory<User> {
   }
 }
 
-beforeAll(() => {
-  createConnection({ client: 'better-sqlite3', connection: { filename: ':memory:' } });
+beforeAll(async () => {
+  await createConnection({ client: 'better-sqlite3', connection: { filename: ':memory:' } });
 });
 
 afterAll(async () => {

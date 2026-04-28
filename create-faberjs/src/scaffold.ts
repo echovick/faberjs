@@ -4,7 +4,7 @@ import path from 'node:path';
 export interface ScaffoldOptions {
   readonly projectName: string;
   readonly targetDir: string;
-  readonly dbDriver: 'sqlite' | 'postgres' | 'mysql';
+  readonly dbDriver: 'sqlite' | 'sqlite-wasm' | 'postgres' | 'mysql';
   readonly includeAuth: boolean;
   readonly agents?: ReadonlyArray<'claude' | 'cursor' | 'copilot' | 'windsurf'>;
 }
@@ -419,6 +419,21 @@ function buildDbConfig(driver: ScaffoldOptions['dbDriver']): {
       configLines: [
         `    'better-sqlite3': {`,
         `      client: 'better-sqlite3',`,
+        `      connection: { filename: env('DB_DATABASE', './storage/database.sqlite') },`,
+        `    },`,
+      ],
+    };
+  }
+
+  // Pure-WASM SQLite via sql.js — no native compilation, works on Termux / ARM / edge
+  if (driver === 'sqlite-wasm') {
+    return {
+      driverDep: { 'sql.js': '^1.12.0' },
+      envLines: ['DB_CONNECTION=sqlite-wasm', 'DB_DATABASE=./storage/database.sqlite'],
+      exampleLines: ['DB_CONNECTION=sqlite-wasm', 'DB_DATABASE=./storage/database.sqlite'],
+      configLines: [
+        `    'sqlite-wasm': {`,
+        `      client: 'sqlite-wasm',`,
         `      connection: { filename: env('DB_DATABASE', './storage/database.sqlite') },`,
         `    },`,
       ],

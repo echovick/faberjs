@@ -5,7 +5,7 @@ import { DatabaseConversationMemory } from './database-memory';
 const TABLE = 'test_conversations';
 
 beforeEach(async () => {
-  const db = createConnection({
+  const db = await createConnection({
     client: 'better-sqlite3',
     connection: { filename: ':memory:' },
   });

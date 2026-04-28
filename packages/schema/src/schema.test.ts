@@ -33,8 +33,8 @@ const _PostSchema = {
   content: t.text().nullable(),
 } as const;
 
-beforeAll(() => {
-  createConnection({ client: 'better-sqlite3', connection: { filename: ':memory:' } });
+beforeAll(async () => {
+  await createConnection({ client: 'better-sqlite3', connection: { filename: ':memory:' } });
 });
 
 afterAll(async () => {

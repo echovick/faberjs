@@ -22,7 +22,7 @@ process.stdout.write('\\x1b[36mFaberJS Tinker\\x1b[0m \\x1b[2m— Type .exit to 
     const { createConnection } = require('@faber-js/orm');
     const client = process.env.DB_CONNECTION || 'better-sqlite3';
     let connection;
-    if (client === 'sqlite3' || client === 'better-sqlite3') {
+    if (client === 'sqlite3' || client === 'better-sqlite3' || client === 'sqlite-wasm') {
       connection = { filename: process.env.DB_DATABASE || './storage/database.sqlite' };
     } else {
       connection = {
@@ -33,7 +33,7 @@ process.stdout.write('\\x1b[36mFaberJS Tinker\\x1b[0m \\x1b[2m— Type .exit to 
         database: process.env.DB_DATABASE || 'faberjs',
       };
     }
-    createConnection({ client, connection });
+    await createConnection({ client, connection });
   } catch (e) {
     process.stderr.write('\\x1b[33mWarning\\x1b[0m DB: ' + e.message + '\\n');
   }

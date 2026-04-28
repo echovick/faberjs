@@ -77,7 +77,7 @@ async function loadMigrations(cwd: string): Promise<MigrationRunner> {
 
 export async function runMigrations(cwd: string): Promise<void> {
   loadDotEnv(cwd);
-  createConnection(buildConnectionConfig());
+  await createConnection(buildConnectionConfig());
   try {
     const runner = await loadMigrations(cwd);
     const executed = await runner.run();
@@ -99,7 +99,7 @@ export async function runMigrations(cwd: string): Promise<void> {
 
 export async function rollbackMigrations(cwd: string): Promise<void> {
   loadDotEnv(cwd);
-  createConnection(buildConnectionConfig());
+  await createConnection(buildConnectionConfig());
   try {
     const runner = await loadMigrations(cwd);
     const rolled = await runner.rollback();
@@ -121,7 +121,7 @@ export async function rollbackMigrations(cwd: string): Promise<void> {
 
 export async function runSeeders(cwd: string): Promise<void> {
   loadDotEnv(cwd);
-  createConnection(buildConnectionConfig());
+  await createConnection(buildConnectionConfig());
   try {
     const seedersDir = join(cwd, 'database', 'seeders');
     if (!existsSync(seedersDir)) {
@@ -154,7 +154,7 @@ export async function runSeeders(cwd: string): Promise<void> {
 
 export async function showMigrationStatus(cwd: string): Promise<void> {
   loadDotEnv(cwd);
-  createConnection(buildConnectionConfig());
+  await createConnection(buildConnectionConfig());
   try {
     const runner = await loadMigrations(cwd);
     const records = await runner.status();

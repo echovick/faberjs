@@ -3,7 +3,7 @@ import { createConnection, destroyConnection, getConnection, Schema } from '@fab
 import { assertDatabaseCount, assertDatabaseHas, assertDatabaseMissing } from './db-assertions';
 
 beforeAll(async () => {
-  createConnection({ client: 'better-sqlite3', connection: { filename: ':memory:' } });
+  await createConnection({ client: 'better-sqlite3', connection: { filename: ':memory:' } });
   await Schema.create('people', (table) => {
     table.id();
     table.string('name');

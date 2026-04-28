@@ -37,8 +37,17 @@
     "knex": "^3.1.0",
     "reflect-metadata": "^0.2.0"
   },
+  "peerDependencies": {
+    "sql.js": "^1.12.0"
+  },
+  "peerDependenciesMeta": {
+    "sql.js": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "better-sqlite3": "^9.4.0",
-    "@types/better-sqlite3": "^7.6.8"
+    "@types/better-sqlite3": "^7.6.8",
+    "sql.js": "^1.12.0"
   }
 }

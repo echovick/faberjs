@@ -83,7 +83,7 @@ async function main(): Promise<void> {
 
   const dbDriver = await promptChoice(
     'Database driver',
-    ['sqlite', 'postgres', 'mysql'] as const,
+    ['sqlite', 'sqlite-wasm', 'postgres', 'mysql'] as const,
     'sqlite',
   );
 
