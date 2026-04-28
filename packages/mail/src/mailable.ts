@@ -85,7 +85,7 @@ export abstract class Mailable {
     return this;
   }
 
-  abstract build(): void | Promise<void>;
+  abstract build(): unknown;
 
   async resolve(): Promise<{
     envelope: MailEnvelope;

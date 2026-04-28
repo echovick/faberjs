@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/bridge-react",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "FaberJS bridge adapter for React — createBridgeApp, usePage, useForm, Link, Head",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
