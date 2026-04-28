@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/bridge",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "FaberJS frontend bridge — server-side protocol, BridgeController, shared data, and Vite plugin",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
