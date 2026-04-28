@@ -20,7 +20,7 @@ export class Request {
   readonly #headers: Record<string, string | string[] | undefined>;
   readonly #body: Record<string, unknown>;
   readonly #query: Record<string, string | string[] | undefined>;
-  readonly #params: Record<string, string>;
+  #params: Record<string, string>;
   readonly #ip: string;
   #validated: Record<string, unknown> | null = null;
 
@@ -171,5 +171,10 @@ export class Request {
 
   params(): Readonly<Record<string, string>> {
     return this.#params;
+  }
+
+  /** @internal Used by the kernel to inject matched route parameters after path matching. */
+  setRouteParams(params: Record<string, string>): void {
+    this.#params = { ...params };
   }
 }

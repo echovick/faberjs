@@ -166,6 +166,15 @@ program
     log.created(result.filePath);
   });
 
+program
+  .command('make:channel <name>')
+  .description('Create a new WebSocket channel handler')
+  .action((name: string) => {
+    const result = generateFile('channel', name, cwd);
+    writeGeneratedFile(result);
+    log.created(result.filePath);
+  });
+
 // ── db:* commands ──────────────────────────────────────────────────
 
 program

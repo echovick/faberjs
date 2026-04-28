@@ -167,4 +167,17 @@ export default function {{Name}}(_props: Props) {
   );
 }
 `,
+
+  channel: `import { Injectable } from '@faber-js/core';
+import { Channel, Socket } from '@faber-js/channels';
+
+@Injectable()
+export class {{Name}}Channel extends Channel {
+  async handle(socket: Socket): Promise<void> {
+    socket.on('disconnect', () => {
+      // cleanup
+    });
+  }
+}
+`,
 };

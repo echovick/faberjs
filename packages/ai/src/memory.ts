@@ -1,17 +1,19 @@
 import type { ConversationMemory, MemoryMessage } from './types';
 
 export class InMemoryConversationMemory implements ConversationMemory {
-  #messages: MemoryMessage[] = [];
+  #sessions = new Map<string, MemoryMessage[]>();
 
-  add(message: MemoryMessage): void {
-    this.#messages.push({ role: message.role, content: message.content });
+  add(message: MemoryMessage, sessionId = 'default'): void {
+    const messages = this.#sessions.get(sessionId) ?? [];
+    messages.push({ role: message.role, content: message.content });
+    this.#sessions.set(sessionId, messages);
   }
 
-  getHistory(): readonly MemoryMessage[] {
-    return [...this.#messages];
+  async getHistory(sessionId = 'default'): Promise<readonly MemoryMessage[]> {
+    return [...(this.#sessions.get(sessionId) ?? [])];
   }
 
-  clear(): void {
-    this.#messages = [];
+  async clear(sessionId = 'default'): Promise<void> {
+    this.#sessions.delete(sessionId);
   }
 }

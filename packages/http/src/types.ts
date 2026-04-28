@@ -2,6 +2,20 @@ import type { Constructor } from '@faber-js/core';
 import type { Request } from './request';
 import type { Response } from './response';
 
+export type RuntimeName = 'node' | 'bun' | 'lambda' | 'cloudflare';
+
+export interface AdapterOptions {
+  readonly port?: number;
+  readonly host?: string;
+}
+
+export type RequestHandler = (request: Request) => Promise<Response>;
+
+export interface HttpAdapter {
+  start(handler: RequestHandler, options?: AdapterOptions): Promise<void>;
+  stop(): Promise<void>;
+}
+
 export interface AuthUser {
   id: string | number;
   [key: string]: unknown;
@@ -70,4 +84,5 @@ export interface HttpKernelContract {
   pushGlobal(middleware: Middleware): this;
   listen(port: number, host?: string): Promise<void>;
   close(): Promise<void>;
+  handleRequest(request: Request): Promise<Response>;
 }

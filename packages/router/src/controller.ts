@@ -20,6 +20,10 @@ export abstract class Controller {
     return Response.noContent();
   }
 
+  protected sse(source: AsyncIterable<string>, status = 200): Response {
+    return Response.sse(source, status);
+  }
+
   protected async authorize(
     user: AuthUser | null,
     ability: string,

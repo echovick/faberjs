@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/ai",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "description": "FaberJS AI-native agent scaffolding — Agent base, @Tool decorator, streaming, memory",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -37,6 +37,9 @@
     "@anthropic-ai/sdk": "^0.32.1",
     "@faber-js/core": "workspace:^",
     "@faber-js/http": "workspace:^",
+    "@faber-js/orm": "workspace:^",
+    "@faber-js/schema": "workspace:^",
+    "@faber-js/validation": "workspace:^",
     "reflect-metadata": "^0.2.0"
   }
 }

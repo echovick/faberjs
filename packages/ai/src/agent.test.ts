@@ -75,12 +75,27 @@ describe('Agent', () => {
 
       const agent = new SimpleAgent();
       await agent.chat('User message');
-      const history = agent.memory.getHistory();
+      const history = await agent.memory.getHistory();
       expect(history.length).toBe(2);
       expect(history[0]?.role).toBe('user');
       expect(history[0]?.content).toBe('User message');
       expect(history[1]?.role).toBe('assistant');
       expect(history[1]?.content).toBe('Response text');
+    });
+
+    it('should scope memory by sessionId', async () => {
+      const { mockCreate } = await getAnthropicMocks();
+      mockCreate.mockResolvedValue({
+        stop_reason: 'end_turn',
+        content: [{ type: 'text', text: 'Reply' }],
+      });
+
+      const agent = new SimpleAgent();
+      await agent.chat('Session A msg', 'session-a');
+      const historyA = await agent.memory.getHistory('session-a');
+      const historyDefault = await agent.memory.getHistory();
+      expect(historyA.length).toBe(2);
+      expect(historyDefault.length).toBe(0);
     });
 
     it('should invoke tool and continue when stop_reason is tool_use', async () => {
@@ -159,8 +174,25 @@ describe('Agent', () => {
       for await (const _ of agent.stream('Hello')) {
         // consume
       }
-      const history = agent.memory.getHistory();
+      const history = await agent.memory.getHistory();
       expect(history[1]?.content).toBe('Full response');
+    });
+
+    it('should scope stream memory by sessionId', async () => {
+      const { mockStream } = await getAnthropicMocks();
+      async function* fakeStream(): AsyncGenerator<unknown> {
+        yield { type: 'content_block_delta', delta: { type: 'text_delta', text: 'chunk' } };
+      }
+      mockStream.mockReturnValue(fakeStream());
+
+      const agent = new SimpleAgent();
+      for await (const _ of agent.stream('Hello', 'sid')) {
+        // consume
+      }
+      const historyDefault = await agent.memory.getHistory();
+      const historySid = await agent.memory.getHistory('sid');
+      expect(historyDefault.length).toBe(0);
+      expect(historySid.length).toBe(2);
     });
   });
 

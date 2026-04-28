@@ -2,16 +2,52 @@ import Fastify from 'fastify';
 import type { FastifyInstance, FastifyRequest as RawFastifyRequest, FastifyReply } from 'fastify';
 import type { ApplicationContract, Constructor } from '@faber-js/core';
 import { Request } from './request';
-import type { Response } from './response';
+import { Response } from './response';
 import { Pipeline } from './pipeline';
 import { HttpException } from './exceptions';
+import { runWithRequest } from './request-context';
 import type {
   ControllerAction,
   ExceptionHandler,
   HttpKernelContract,
   Middleware,
+  RouteDefinition,
   RouterContract,
 } from './types';
+
+function matchPathParams(pattern: string, pathname: string): Record<string, string> | null {
+  const normalize = (s: string): string => s.replace(/\/$/, '') || '/';
+  const patternParts = normalize(pattern).split('/');
+  const pathParts = normalize(pathname).split('/');
+
+  if (patternParts.length !== pathParts.length) return null;
+
+  const params: Record<string, string> = {};
+  for (let i = 0; i < patternParts.length; i++) {
+    const pp = patternParts[i] ?? '';
+    const vp = pathParts[i] ?? '';
+    if (pp.startsWith(':')) {
+      params[pp.slice(1)] = decodeURIComponent(vp);
+    } else if (pp !== vp) {
+      return null;
+    }
+  }
+  return params;
+}
+
+function matchRoute(
+  routes: readonly RouteDefinition[],
+  method: string,
+  pathname: string,
+): { route: RouteDefinition; params: Record<string, string> } | null {
+  const upperMethod = method.toUpperCase();
+  for (const route of routes) {
+    if (route.method !== upperMethod) continue;
+    const params = matchPathParams(route.path, pathname);
+    if (params !== null) return { route, params };
+  }
+  return null;
+}
 
 export class HttpKernel implements HttpKernelContract {
   private readonly fastify: FastifyInstance;
@@ -58,6 +94,36 @@ export class HttpKernel implements HttpKernelContract {
     await this.fastify.close();
   }
 
+  async handleRequest(request: Request): Promise<Response> {
+    if (!this.app.bound('router')) {
+      return Response.notFound('Not Found');
+    }
+
+    const router = this.app.make<RouterContract>('router');
+    const match = matchRoute(router.getRoutes(), request.method(), request.path());
+
+    if (match === null) {
+      return Response.notFound('Route not found');
+    }
+
+    const { route, params } = match;
+    request.setRouteParams(params);
+
+    const routeMiddleware = route.middleware
+      .map((name) => this.namedMiddleware.get(name))
+      .filter((mw): mw is Middleware => mw !== undefined);
+
+    const pipeline = new Pipeline([...this.globalMiddleware, ...routeMiddleware], (req) =>
+      this.invokeHandler(route.handler, req),
+    );
+
+    try {
+      return await runWithRequest(request, () => pipeline.send(request));
+    } catch (error: unknown) {
+      return this.buildErrorResponse(error);
+    }
+  }
+
   getUrl(): string {
     return this.address;
   }
@@ -78,7 +144,7 @@ export class HttpKernel implements HttpKernelContract {
             const pipeline = new Pipeline([...this.globalMiddleware, ...routeMiddleware], (req) =>
               this.invokeHandler(handler, req),
             );
-            const res = await pipeline.send(request);
+            const res = await runWithRequest(request, () => pipeline.send(request));
             await this.sendResponse(reply, res);
           } catch (error: unknown) {
             await this.handleError(reply, error);
@@ -153,38 +219,27 @@ export class HttpKernel implements HttpKernelContract {
     await reply.status(res.getStatus()).send(body);
   }
 
-  private async handleError(reply: FastifyReply, error: unknown): Promise<void> {
-    // Allow apps to intercept all errors via a custom exception handler
+  private async buildErrorResponse(error: unknown): Promise<Response> {
     if (this.app.bound('exception.handler')) {
       const handler = this.app.make<ExceptionHandler>('exception.handler');
       const response = await Promise.resolve(handler.handle(error));
-      if (response !== null) {
-        await this.sendResponse(reply, response);
-        return;
-      }
+      if (response !== null) return response;
     }
 
     if (error instanceof HttpException) {
       const body: Record<string, unknown> = { message: error.message };
-      if (error.data !== undefined) {
-        body['errors'] = error.data;
-      }
-      await reply.status(error.statusCode).send(body);
-      return;
+      if (error.data !== undefined) body['errors'] = error.data;
+      return Response.json(body, error.statusCode);
     }
 
-    // Handle ApplicationException (from @faber-js/core Service helpers) and any
-    // error carrying a statusCode property
     if (error instanceof Error && 'statusCode' in error) {
       const statusCode = (error as { statusCode: number }).statusCode;
       const data = (error as { data?: unknown }).data;
       const body: Record<string, unknown> = { message: error.message };
       if (data !== undefined) body['errors'] = data;
-      await reply.status(statusCode).send(body);
-      return;
+      return Response.json(body, statusCode);
     }
 
-    // Detect database unique-constraint violations and return a safe 409 response
     if (error instanceof Error && 'code' in error) {
       const code = (error as { code: string }).code;
       const isUniqueViolation =
@@ -193,32 +248,31 @@ export class HttpKernel implements HttpKernelContract {
         code === 'SQLITE_CONSTRAINT' ||
         code === '23505';
       if (isUniqueViolation) {
-        await reply.status(409).send({ message: 'A conflicting record already exists.' });
-        return;
+        return Response.json({ message: 'A conflicting record already exists.' }, 409);
       }
-      // Any other DB error — log internally, return generic 500
       if ('errno' in error || 'sqlMessage' in error || 'sql' in error) {
         const logMsg = error instanceof Error ? (error.stack ?? error.message) : String(error);
-        if (this.app.bound('log')) {
-          const logger = this.app.make<{ error(msg: string): void }>('log');
-          logger.error(logMsg);
-        } else {
-          process.stderr.write(`\x1b[31mERROR\x1b[0m ${logMsg}\n`);
-        }
-        await reply.status(500).send({ message: 'Internal Server Error' });
-        return;
+        this.logError(logMsg);
+        return Response.error('Internal Server Error', 500);
       }
     }
 
     const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
+    this.logError(message);
+    return Response.error('Internal Server Error', 500);
+  }
 
+  private logError(message: string): void {
     if (this.app.bound('log')) {
       const logger = this.app.make<{ error(msg: string): void }>('log');
       logger.error(message);
     } else {
       process.stderr.write(`\x1b[31mERROR\x1b[0m ${message}\n`);
     }
+  }
 
-    await reply.status(500).send({ message: 'Internal Server Error' });
+  private async handleError(reply: FastifyReply, error: unknown): Promise<void> {
+    const res = await this.buildErrorResponse(error);
+    await this.sendResponse(reply, res);
   }
 }

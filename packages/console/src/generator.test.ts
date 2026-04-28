@@ -108,6 +108,22 @@ describe('generateFile()', () => {
     });
   });
 
+  describe('make:channel', () => {
+    it('generates a Channel class extending Channel', () => {
+      const result = generateFile('channel', 'User', cwd);
+      expect(result.content).toContain('class UserChannel extends Channel');
+      expect(result.content).toContain('@Injectable()');
+      expect(result.content).toContain('@faber-js/channels');
+      expect(result.filePath).toContain('UserChannel.ts');
+      expect(result.filePath).toContain('app/channels');
+    });
+
+    it('handles PascalCase names correctly', () => {
+      const result = generateFile('channel', 'ChatRoom', cwd);
+      expect(result.content).toContain('class ChatRoomChannel');
+    });
+  });
+
   describe('throws for unknown type', () => {
     it('throws an error for an unknown generator type', () => {
       expect(() => generateFile('unknown-type', 'Foo', cwd)).toThrow('Unknown generator type');

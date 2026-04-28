@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/schema",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "description": "FaberJS schema-first model declarations — one definition generates migrations, types, validation, OpenAPI, and test factories",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

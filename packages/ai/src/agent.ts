@@ -2,23 +2,34 @@ import 'reflect-metadata';
 import Anthropic from '@anthropic-ai/sdk';
 import { Application, Injectable } from '@faber-js/core';
 import type { ApplicationContract } from '@faber-js/core';
+import { getCurrentRequest, ForbiddenException } from '@faber-js/http';
+import type { AuthUser } from '@faber-js/http';
 import { getToolMeta } from './tool';
 import { InMemoryConversationMemory } from './memory';
 import type { ConversationMemory, MemoryMessage } from './types';
+import type { SchemaShape } from '@faber-js/schema';
+import { schemaShapeToJsonSchema } from './structured-output';
 
 type AnthropicMessage = Anthropic.MessageParam;
 type AnthropicToolParam = Anthropic.Tool;
 type AnthropicContentBlock = Anthropic.ContentBlock;
 
+interface GateResolvable {
+  allows(ability: string, user: AuthUser | null, model?: unknown): Promise<boolean>;
+}
+
 function getApiKey(): string {
   return process.env['ANTHROPIC_API_KEY'] ?? '';
 }
+
+const STRUCTURED_OUTPUT_TOOL = '__structured_output__';
 
 @Injectable()
 export abstract class Agent {
   model = 'claude-sonnet-4-6';
   systemPrompt = '';
   maxTokens = 4096;
+  output?: SchemaShape;
   memory: ConversationMemory = new InMemoryConversationMemory();
 
   get container(): ApplicationContract {
@@ -37,10 +48,11 @@ export abstract class Agent {
     }));
   }
 
-  #buildHistory(extra?: MemoryMessage): AnthropicMessage[] {
-    const messages: AnthropicMessage[] = this.memory
-      .getHistory()
-      .map((m) => ({ role: m.role, content: m.content }));
+  async #buildHistory(extra?: MemoryMessage, sessionId?: string): Promise<AnthropicMessage[]> {
+    const messages: AnthropicMessage[] = (await this.memory.getHistory(sessionId)).map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
     if (extra) messages.push({ role: extra.role, content: extra.content });
     return messages;
   }
@@ -54,13 +66,30 @@ export abstract class Agent {
     return (method as (input: Record<string, unknown>) => Promise<unknown>).call(this, input);
   }
 
-  async chat(message: string): Promise<string> {
+  protected async authorize(ability: string, resource?: unknown): Promise<void> {
+    const request = getCurrentRequest();
+    const user = request?.user ?? null;
+
+    const app = Application.getInstance();
+    if (app.bound('gate')) {
+      const gate = app.make<GateResolvable>('gate');
+      const allowed = await gate.allows(ability, user, resource);
+      if (!allowed) throw new ForbiddenException('Not authorized to perform this action');
+    }
+  }
+
+  async chat(message: string, sessionId?: string): Promise<string> {
     const client = this.#createClient();
+
+    this.memory.add({ role: 'user', content: message }, sessionId);
+
+    const history = await this.#buildHistory(undefined, sessionId);
+
+    if (this.output) {
+      return this.#chatWithStructuredOutput(client, history, sessionId);
+    }
+
     const tools = this.#buildAnthropicTools();
-
-    this.memory.add({ role: 'user', content: message });
-
-    const history: AnthropicMessage[] = this.#buildHistory();
 
     const createParams: Anthropic.MessageCreateParamsNonStreaming = {
       model: this.model,
@@ -89,7 +118,6 @@ export abstract class Agent {
       }
 
       history.push({ role: 'user', content: toolResults });
-
       response = await client.messages.create({ ...createParams, messages: history });
     }
 
@@ -98,19 +126,58 @@ export abstract class Agent {
       .map((b) => b.text)
       .join('');
 
-    this.memory.add({ role: 'assistant', content: text });
+    this.memory.add({ role: 'assistant', content: text }, sessionId);
     return text;
   }
 
-  async *stream(message: string): AsyncGenerator<string> {
+  async #chatWithStructuredOutput(
+    client: Anthropic,
+    history: AnthropicMessage[],
+    sessionId?: string,
+  ): Promise<string> {
+    if (!this.output) return '{}';
+    const outputSchema = this.output;
+    const jsonSchema = schemaShapeToJsonSchema(outputSchema);
+
+    const structuredTool: AnthropicToolParam = {
+      name: STRUCTURED_OUTPUT_TOOL,
+      description: 'Return the structured output in the required format',
+      input_schema: jsonSchema as Anthropic.Tool['input_schema'],
+    };
+
+    const response = await client.messages.create({
+      model: this.model,
+      max_tokens: this.maxTokens,
+      messages: history,
+      ...(this.systemPrompt ? { system: this.systemPrompt } : {}),
+      tools: [structuredTool],
+      tool_choice: { type: 'tool', name: STRUCTURED_OUTPUT_TOOL },
+    });
+
+    for (const block of response.content) {
+      if (block.type === 'tool_use' && block.name === STRUCTURED_OUTPUT_TOOL) {
+        const result = JSON.stringify(block.input);
+        this.memory.add({ role: 'assistant', content: result }, sessionId);
+        return result;
+      }
+    }
+
+    const fallback = '';
+    this.memory.add({ role: 'assistant', content: fallback }, sessionId);
+    return fallback;
+  }
+
+  async *stream(message: string, sessionId?: string): AsyncGenerator<string> {
     const client = this.#createClient();
 
-    this.memory.add({ role: 'user', content: message });
+    this.memory.add({ role: 'user', content: message }, sessionId);
+
+    const history = await this.#buildHistory(undefined, sessionId);
 
     const messageStream = client.messages.stream({
       model: this.model,
       max_tokens: this.maxTokens,
-      messages: this.#buildHistory(),
+      messages: history,
       ...(this.systemPrompt ? { system: this.systemPrompt } : {}),
     });
 
@@ -123,6 +190,6 @@ export abstract class Agent {
       }
     }
 
-    this.memory.add({ role: 'assistant', content: fullText });
+    this.memory.add({ role: 'assistant', content: fullText }, sessionId);
   }
 }

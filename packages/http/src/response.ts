@@ -55,6 +55,23 @@ export class Response {
     });
   }
 
+  static sse(source: AsyncIterable<string>, status = 200): Response {
+    async function* toSseEvents(): AsyncGenerator<string> {
+      for await (const chunk of source) {
+        yield `data: ${JSON.stringify({ delta: chunk })}\n\n`;
+      }
+    }
+    return new Response({
+      body: toSseEvents(),
+      status,
+      headers: {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      },
+    });
+  }
+
   getStatus(): number {
     return this.#status;
   }

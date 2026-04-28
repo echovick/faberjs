@@ -1,0 +1,60 @@
+{
+  "name": "@faber-js/adapters",
+  "version": "1.0.28",
+  "description": "FaberJS pluggable HTTP adapters for Node.js, Bun, AWS Lambda, and Cloudflare Workers",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    },
+    "./fastify": {
+      "types": "./dist/fastify/index.d.ts",
+      "require": "./dist/fastify/index.js",
+      "import": "./dist/fastify/index.mjs"
+    },
+    "./bun": {
+      "types": "./dist/bun/index.d.ts",
+      "require": "./dist/bun/index.js",
+      "import": "./dist/bun/index.mjs"
+    },
+    "./lambda": {
+      "types": "./dist/lambda/index.d.ts",
+      "require": "./dist/lambda/index.js",
+      "import": "./dist/lambda/index.mjs"
+    },
+    "./cloudflare": {
+      "types": "./dist/cloudflare/index.d.ts",
+      "require": "./dist/cloudflare/index.js",
+      "import": "./dist/cloudflare/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "keywords": [
+    "faberjs",
+    "framework",
+    "adapters",
+    "bun",
+    "lambda",
+    "cloudflare"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@faber-js/core": "workspace:^",
+    "@faber-js/http": "workspace:^",
+    "fastify": "^5.8.3"
+  }
+}

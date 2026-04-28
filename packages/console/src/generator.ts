@@ -81,6 +81,7 @@ export function generateFile(
     command: join(cwd, 'app', 'commands'),
     provider: join(cwd, 'app', 'providers'),
     agent: join(cwd, 'app', 'agents'),
+    channel: join(cwd, 'app', 'channels'),
   };
 
   const dir = dirMap[type];
@@ -99,6 +100,7 @@ export function generateFile(
     command: `${pascal}Command.ts`,
     provider: `${pascal}ServiceProvider.ts`,
     agent: `${pascal}Agent.ts`,
+    channel: `${pascal}Channel.ts`,
   };
 
   const fileName = fileNameMap[type] ?? `${pascal}.ts`;
