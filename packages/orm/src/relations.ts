@@ -221,6 +221,55 @@ export class BelongsToMany<TParent extends ModelLike, TRelated extends ModelLike
     );
   }
 
+  async attach(ids: number | number[], pivotData: Record<string, ColumnValue> = {}): Promise<void> {
+    const db = getConnection();
+    const parentId = this.#parent.getAttribute('id') as number;
+    const idArray = Array.isArray(ids) ? ids : [ids];
+    await db(this.#pivotTable).insert(
+      idArray.map((id) => ({
+        [this.#foreignPivotKey]: parentId,
+        [this.#relatedPivotKey]: id,
+        ...pivotData,
+      })),
+    );
+  }
+
+  async detach(ids?: number | number[]): Promise<void> {
+    const db = getConnection();
+    const parentId = this.#parent.getAttribute('id') as number;
+    const query = db(this.#pivotTable).where(this.#foreignPivotKey, parentId);
+    if (ids !== undefined) {
+      const idArray = Array.isArray(ids) ? ids : [ids];
+      void query.whereIn(this.#relatedPivotKey, idArray);
+    }
+    await query.delete();
+  }
+
+  async sync(ids: number[], detaching = true): Promise<void> {
+    const db = getConnection();
+    const parentId = this.#parent.getAttribute('id') as number;
+    const currentRows: Array<Record<string, ColumnValue>> = await db(this.#pivotTable)
+      .where(this.#foreignPivotKey, parentId)
+      .select(this.#relatedPivotKey);
+    const currentIds = currentRows.map((r) => Number(r[this.#relatedPivotKey]));
+    const toAttach = ids.filter((id) => !currentIds.includes(id));
+    const toDetach = detaching ? currentIds.filter((id) => !ids.includes(id)) : [];
+    if (toDetach.length > 0) {
+      await db(this.#pivotTable)
+        .where(this.#foreignPivotKey, parentId)
+        .whereIn(this.#relatedPivotKey, toDetach)
+        .delete();
+    }
+    if (toAttach.length > 0) {
+      await db(this.#pivotTable).insert(
+        toAttach.map((id) => ({
+          [this.#foreignPivotKey]: parentId,
+          [this.#relatedPivotKey]: id,
+        })),
+      );
+    }
+  }
+
   async load(parents: TParent[]): Promise<void> {
     if (parents.length === 0) return;
     const parentIds = parents

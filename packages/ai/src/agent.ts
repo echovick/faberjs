@@ -68,7 +68,7 @@ export abstract class Agent {
 
   protected async authorize(ability: string, resource?: unknown): Promise<void> {
     const request = getCurrentRequest();
-    const user = request?.user ?? null;
+    const user = request?.user() ?? null;
 
     const app = Application.getInstance();
     if (app.bound('gate')) {

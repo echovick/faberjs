@@ -13,7 +13,16 @@ export interface RequestOptions {
 }
 
 export class Request {
-  public user: AuthUser | null = null;
+  #user: AuthUser | null = null;
+
+  user<T extends AuthUser = AuthUser>(): T | null {
+    return this.#user as T | null;
+  }
+
+  setUser(user: AuthUser | null): this {
+    this.#user = user;
+    return this;
+  }
 
   readonly #method: string;
   readonly #path: string;

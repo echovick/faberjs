@@ -122,7 +122,7 @@ export class HttpKernel implements HttpKernelContract {
     request.setRouteParams(params);
 
     const routeMiddleware = route.middleware
-      .map((name) => this.namedMiddleware.get(name))
+      .map((name) => this.resolveMiddleware(name))
       .filter((mw): mw is Middleware => mw !== undefined);
 
     const pipeline = new Pipeline([...this.globalMiddleware, ...routeMiddleware], (req) =>
@@ -140,6 +140,16 @@ export class HttpKernel implements HttpKernelContract {
     return this.address;
   }
 
+  private resolveMiddleware(name: string): Middleware | undefined {
+    const fromMap = this.namedMiddleware.get(name);
+    if (fromMap) return fromMap;
+    const containerKey = `middleware.${name}`;
+    if (this.app.bound(containerKey)) {
+      return this.app.make<Middleware>(containerKey);
+    }
+    return undefined;
+  }
+
   private registerRoutes(router: RouterContract): void {
     for (const route of router.getRoutes()) {
       const { method, path, handler, middleware: routeMiddlewareNames } = route;
@@ -152,7 +162,7 @@ export class HttpKernel implements HttpKernelContract {
             const request = this.adaptRequest(rawReq, body, files);
 
             const routeMiddleware = routeMiddlewareNames
-              .map((name) => this.namedMiddleware.get(name))
+              .map((name) => this.resolveMiddleware(name))
               .filter((mw): mw is Middleware => mw !== undefined);
 
             const pipeline = new Pipeline([...this.globalMiddleware, ...routeMiddleware], (req) =>

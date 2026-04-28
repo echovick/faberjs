@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/router",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "FaberJS HTTP routing engine with resource routes, route groups, and route model binding",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

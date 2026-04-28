@@ -15,7 +15,7 @@ export function Authorize(
     const original = descriptor.value as (...args: unknown[]) => Promise<unknown>;
     descriptor.value = async function (this: object, ...args: unknown[]) {
       const request = getCurrentRequest();
-      const user = request?.user ?? null;
+      const user = request?.user() ?? null;
       const resourceValue = resource ? resource(args) : undefined;
 
       const app = Application.getInstance();

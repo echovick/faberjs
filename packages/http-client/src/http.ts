@@ -83,6 +83,10 @@ export class Http {
     return Http._fake;
   }
 
+  static clearFakes(): void {
+    Http._fake = null;
+  }
+
   private static newPending(): PendingRequest {
     return new PendingRequest();
   }

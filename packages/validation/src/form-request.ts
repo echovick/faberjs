@@ -1,6 +1,6 @@
-import type { Request } from '@faber-js/http';
+import type { AuthUser, Request } from '@faber-js/http';
 import { ForbiddenException, ValidationException } from '@faber-js/http';
-import type { AuthUser, InputData, RuleValue, ValidationRules } from './types';
+import type { InputData, RuleValue, ValidationRules } from './types';
 import { Validator } from './validator';
 
 export abstract class FormRequest {
@@ -17,7 +17,7 @@ export abstract class FormRequest {
   }
 
   protected user(): AuthUser | null {
-    return this.#request.user as AuthUser | null;
+    return this.#request.user();
   }
 
   protected input(key: string): RuleValue {

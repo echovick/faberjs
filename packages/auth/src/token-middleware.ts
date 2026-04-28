@@ -12,7 +12,7 @@ export class TokenMiddleware implements Middleware {
     const user = await guard.user(token);
     if (!user) throw new UnauthorizedException();
 
-    request.user = user;
+    request.setUser(user);
     return next(request);
   }
 }

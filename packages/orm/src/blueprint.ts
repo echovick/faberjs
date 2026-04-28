@@ -33,6 +33,11 @@ export class ColumnDefinition {
     this.#col.unsigned();
     return this;
   }
+
+  primary(): this {
+    this.#col.primary();
+    return this;
+  }
 }
 
 export class Blueprint {
