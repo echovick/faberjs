@@ -8,7 +8,7 @@ class FakeMail {
     this.sent.push(mailable);
   }
 
-  assertSent(mailableClass: new (...args: unknown[]) => Mailable, count?: number): void {
+  assertSent(mailableClass: new (...args: never[]) => Mailable, count?: number): void {
     const matching = this.sent.filter((m) => m instanceof mailableClass);
     if (count !== undefined) {
       if (matching.length !== count) {
@@ -21,7 +21,7 @@ class FakeMail {
     }
   }
 
-  assertNotSent(mailableClass: new (...args: unknown[]) => Mailable): void {
+  assertNotSent(mailableClass: new (...args: never[]) => Mailable): void {
     const matching = this.sent.filter((m) => m instanceof mailableClass);
     if (matching.length > 0) {
       throw new Error(
@@ -84,14 +84,14 @@ export class Mail {
     Mail._fake = null;
   }
 
-  static assertSent(mailableClass: new (...args: unknown[]) => Mailable, count?: number): void {
+  static assertSent(mailableClass: new (...args: never[]) => Mailable, count?: number): void {
     if (!Mail._fake) {
       throw new Error('Call Mail.fake() before using Mail.assertSent().');
     }
     Mail._fake.assertSent(mailableClass, count);
   }
 
-  static assertNotSent(mailableClass: new (...args: unknown[]) => Mailable): void {
+  static assertNotSent(mailableClass: new (...args: never[]) => Mailable): void {
     if (!Mail._fake) {
       throw new Error('Call Mail.fake() before using Mail.assertNotSent().');
     }
