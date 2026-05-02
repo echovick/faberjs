@@ -1,9 +1,9 @@
-# Phase 16 — Dev Observability Dashboard
+# Dev Observability Dashboard
 
 **Package:** `@faber-js/devtools`  
 **Depends on:** `@faber-js/core`, `@faber-js/http`, `@faber-js/router`, `@faber-js/orm`, `@faber-js/queue`, `@faber-js/events`  
 **Estimated effort:** 3-4 weeks  
-**Priority:** High — second ship after Phase 15
+**Priority:** High
 
 ---
 
@@ -19,17 +19,18 @@ A zero-config development dashboard at `/_faber` that shows every request, query
 
 Live feed of every HTTP request processed by the app.
 
-| Column | Description |
-|--------|-------------|
-| Method | GET / POST / etc. |
-| Path | `/api/users/42` |
+| Column     | Description           |
+| ---------- | --------------------- |
+| Method     | GET / POST / etc.     |
+| Path       | `/api/users/42`       |
 | Controller | `UserController@show` |
-| Status | 200 / 404 / 500 |
-| Time | 23ms |
-| Queries | 3 SQL queries |
-| Memory | +1.2MB |
+| Status     | 200 / 404 / 500       |
+| Time       | 23ms                  |
+| Queries    | 3 SQL queries         |
+| Memory     | +1.2MB                |
 
 Click any row to expand:
+
 - Full request headers and body
 - Full response headers and body
 - SQL queries in order with timing and the calling code location
@@ -51,10 +52,10 @@ Click any job for full payload inspection and attempt history.
 
 Chronological log of all events fired.
 
-| Time | Event | Listeners | Duration |
-|------|-------|-----------|----------|
-| 14:23:01.442 | `UserRegistered` | 3 listeners | 45ms |
-| 14:23:01.387 | `OrderPaid` | 2 listeners | 12ms |
+| Time         | Event            | Listeners   | Duration |
+| ------------ | ---------------- | ----------- | -------- |
+| 14:23:01.442 | `UserRegistered` | 3 listeners | 45ms     |
+| 14:23:01.387 | `OrderPaid`      | 2 listeners | 12ms     |
 
 Expand each event to see which listeners ran, their individual timing, and whether any were queued async.
 
@@ -97,7 +98,7 @@ import { DevToolsServiceProvider } from '@faber-js/devtools';
 const app = createApp({
   providers: [
     // ...other providers
-    DevToolsServiceProvider,  // only active when APP_ENV !== 'production'
+    DevToolsServiceProvider, // only active when APP_ENV !== 'production'
   ],
 });
 ```
@@ -110,10 +111,10 @@ Or automatically enabled in the scaffolded app when `APP_ENV=local`.
 // config/devtools.ts
 export default {
   enabled: process.env.APP_ENV !== 'production',
-  path: '/_faber',           // dashboard URL
-  slowQueryThreshold: 100,   // ms — highlight slow queries
-  maxEvents: 500,            // events to keep in memory ring buffer
-  maxRequests: 200,          // requests to keep in memory ring buffer
+  path: '/_faber', // dashboard URL
+  slowQueryThreshold: 100, // ms — highlight slow queries
+  maxEvents: 500, // events to keep in memory ring buffer
+  maxRequests: 200, // requests to keep in memory ring buffer
 };
 ```
 

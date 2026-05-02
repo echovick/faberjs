@@ -1,9 +1,9 @@
-# Phase 15 — Schema-First Everything
+# Schema-First Everything
 
 **Package:** `@faber-js/schema`  
 **Depends on:** `@faber-js/orm`, `@faber-js/validation`, `@faber-js/core`  
 **Estimated effort:** 4-6 weeks  
-**Priority:** Critical path — ship before all other phases
+**Priority:** Critical path
 
 ---
 
@@ -22,12 +22,12 @@ One schema declaration that generates the database migration, the ORM model, the
 import { schema, t } from '@faber-js/schema';
 
 export const User = schema('users', {
-  id:        t.id(),
-  name:      t.string().min(2).max(100),
-  email:     t.email().unique(),
-  password:  t.string().hidden(),
-  role:      t.enum(['admin', 'editor', 'viewer']).default('viewer'),
-  bio:       t.text().nullable(),
+  id: t.id(),
+  name: t.string().min(2).max(100),
+  email: t.email().unique(),
+  password: t.string().hidden(),
+  role: t.enum(['admin', 'editor', 'viewer']).default('viewer'),
+  bio: t.text().nullable(),
   createdAt: t.timestamp().auto(),
   updatedAt: t.timestamp().auto(),
 });
@@ -43,7 +43,7 @@ type User = {
   id: number;
   name: string;
   email: string;
-  password: string;   // present on model, excluded from JSON by default
+  password: string; // present on model, excluded from JSON by default
   role: 'admin' | 'editor' | 'viewer';
   bio: string | null;
   createdAt: Date;
@@ -55,11 +55,11 @@ type User = {
 
 ```typescript
 // Generated model extends the schema-aware base
-const user = await User.find(1);    // → User type inferred
-const users = await User.where('role', 'admin').get();  // → User[]
+const user = await User.find(1); // → User type inferred
+const users = await User.where('role', 'admin').get(); // → User[]
 
 await User.create({
-  name: 'Alice',       // TypeScript enforces the shape
+  name: 'Alice', // TypeScript enforces the shape
   email: 'a@b.com',
   // role defaults to 'viewer' automatically
 });
@@ -100,7 +100,7 @@ class StoreUserRequest extends FormRequest {
 class UpdateUserRequest extends FormRequest {
   rules() {
     return User.rules(['name', 'bio'], {
-      name: ['required', 'string', 'min:2'],  // override individual fields
+      name: ['required', 'string', 'min:2'], // override individual fields
     });
   }
 }
@@ -110,9 +110,7 @@ class UpdateUserRequest extends FormRequest {
 
 ```typescript
 // Automatic — included in Route definition
-Route.post('/users', [UserController, 'store'])
-  .request(StoreUserRequest)
-  .response(User);   // uses User schema for response shape
+Route.post('/users', [UserController, 'store']).request(StoreUserRequest).response(User); // uses User schema for response shape
 
 // /_faber/api-docs generates the full OpenAPI spec
 ```
@@ -136,45 +134,45 @@ const users = User.factory().times(5).create();
 
 ### Primitive Types
 
-| Type | Method | Notes |
-|------|--------|-------|
-| Auto-increment integer | `t.id()` | Primary key, always present |
-| String (varchar) | `t.string(length?)` | Default length 255 |
-| Text (longtext) | `t.text()` | Unbounded string |
-| Integer | `t.integer()` | 32-bit signed |
-| Big integer | `t.bigInteger()` | 64-bit signed |
-| Float | `t.float()` | Double precision |
-| Decimal | `t.decimal(precision, scale)` | For currency |
-| Boolean | `t.boolean()` | Maps to tinyint(1) in MySQL |
-| Date | `t.date()` | Date only |
-| Timestamp | `t.timestamp()` | Date + time |
-| JSON | `t.json()` | Stored as JSON column, typed |
-| UUID | `t.uuid()` | Auto-generated if `.auto()` |
-| Enum | `t.enum([...values])` | Generates TS union type |
+| Type                   | Method                        | Notes                        |
+| ---------------------- | ----------------------------- | ---------------------------- |
+| Auto-increment integer | `t.id()`                      | Primary key, always present  |
+| String (varchar)       | `t.string(length?)`           | Default length 255           |
+| Text (longtext)        | `t.text()`                    | Unbounded string             |
+| Integer                | `t.integer()`                 | 32-bit signed                |
+| Big integer            | `t.bigInteger()`              | 64-bit signed                |
+| Float                  | `t.float()`                   | Double precision             |
+| Decimal                | `t.decimal(precision, scale)` | For currency                 |
+| Boolean                | `t.boolean()`                 | Maps to tinyint(1) in MySQL  |
+| Date                   | `t.date()`                    | Date only                    |
+| Timestamp              | `t.timestamp()`               | Date + time                  |
+| JSON                   | `t.json()`                    | Stored as JSON column, typed |
+| UUID                   | `t.uuid()`                    | Auto-generated if `.auto()`  |
+| Enum                   | `t.enum([...values])`         | Generates TS union type      |
 
 ### Modifier Chain
 
 ```typescript
 t.string()
-  .min(2)           // validation: min length 2
-  .max(100)         // validation: max length 100
-  .nullable()       // DB: NULL allowed, TS: type | null
-  .unique()         // DB: UNIQUE constraint
+  .min(2) // validation: min length 2
+  .max(100) // validation: max length 100
+  .nullable() // DB: NULL allowed, TS: type | null
+  .unique() // DB: UNIQUE constraint
   .default('value') // DB: DEFAULT, TS: optional on create
-  .hidden()         // excluded from JSON/toObject by default
-  .auto()           // auto-populated (timestamps, UUIDs)
-  .index()          // adds DB index
-  .unsigned()       // for integers: no negative values
+  .hidden() // excluded from JSON/toObject by default
+  .auto() // auto-populated (timestamps, UUIDs)
+  .index() // adds DB index
+  .unsigned(); // for integers: no negative values
 ```
 
 ### Relationship Declarations
 
 ```typescript
 export const Post = schema('posts', {
-  id:       t.id(),
-  title:    t.string(),
-  userId:   t.foreignId('users'),  // foreign key, adds DB constraint
-  content:  t.text(),
+  id: t.id(),
+  title: t.string(),
+  userId: t.foreignId('users'), // foreign key, adds DB constraint
+  content: t.text(),
   // ...
 });
 
@@ -194,6 +192,7 @@ Generates `schema/<Name>.ts` with a stub declaration.
 ### `faber db:migrate` (enhanced)
 
 Before running migrations, the schema compiler:
+
 1. Reads all `schema/*.ts` files
 2. Compares each schema to the current DB state
 3. Generates migration SQL for any additions (new columns, new tables)
@@ -240,10 +239,9 @@ Build `FieldBuilder` and the `t` type map. All primitive types with the full mod
 Key challenge: TypeScript conditional types for inferring the final shape from a chain of modifiers.
 
 ```typescript
-type InferField<F extends FieldBuilder<any>> =
-  F['_nullable'] extends true
-    ? F['_type'] | null
-    : F['_type'];
+type InferField<F extends FieldBuilder<any>> = F['_nullable'] extends true
+  ? F['_type'] | null
+  : F['_type'];
 
 type InferSchema<S extends Record<string, FieldBuilder<any>>> = {
   [K in keyof S]: InferField<S[K]>;
@@ -253,6 +251,7 @@ type InferSchema<S extends Record<string, FieldBuilder<any>>> = {
 ### Step 2 — Schema Factory and ORM Bridge (Week 2)
 
 `schema(table, shape)` returns a class that:
+
 - Extends `Model` from `@faber-js/orm`
 - Has the inferred TypeScript type via `InferSchema<shape>`
 - Carries the raw schema definition for downstream use (migration, validation, OpenAPI)
@@ -263,16 +262,16 @@ The model's `table`, `hidden`, and `fillable` are derived from the schema.
 
 Map field modifiers to validation rules:
 
-| Field modifier | Validation rule |
-|---------------|-----------------|
-| `.min(n)` | `min:n` |
-| `.max(n)` | `max:n` |
-| `.nullable()` | `nullable` |
-| `.email()` | `email` |
-| `.unique()` | `unique:table,column` |
-| `t.integer()` | `integer` |
-| `t.boolean()` | `boolean` |
-| `t.enum([...])` | `in:a,b,c` |
+| Field modifier  | Validation rule       |
+| --------------- | --------------------- |
+| `.min(n)`       | `min:n`               |
+| `.max(n)`       | `max:n`               |
+| `.nullable()`   | `nullable`            |
+| `.email()`      | `email`               |
+| `.unique()`     | `unique:table,column` |
+| `t.integer()`   | `integer`             |
+| `t.boolean()`   | `boolean`             |
+| `t.enum([...])` | `in:a,b,c`            |
 
 `User.rules(['name', 'email'])` returns a validation rules object usable directly in `FormRequest.rules()`.
 
@@ -280,23 +279,25 @@ Map field modifiers to validation rules:
 
 Integrate `@faker-js/faker` for sensible defaults per field type:
 
-| Field type | Default factory |
-|-----------|----------------|
-| `t.string()` with field name `name` | `faker.person.fullName()` |
-| `t.email()` | `faker.internet.email()` |
-| `t.string()` | `faker.lorem.words(3)` |
-| `t.integer()` | `faker.number.int()` |
-| `t.boolean()` | `faker.datatype.boolean()` |
-| `t.timestamp().auto()` | `new Date()` |
-| `t.enum([...values])` | random pick from values |
-| `t.uuid().auto()` | `faker.string.uuid()` |
+| Field type                          | Default factory            |
+| ----------------------------------- | -------------------------- |
+| `t.string()` with field name `name` | `faker.person.fullName()`  |
+| `t.email()`                         | `faker.internet.email()`   |
+| `t.string()`                        | `faker.lorem.words(3)`     |
+| `t.integer()`                       | `faker.number.int()`       |
+| `t.boolean()`                       | `faker.datatype.boolean()` |
+| `t.timestamp().auto()`              | `new Date()`               |
+| `t.enum([...values])`               | random pick from values    |
+| `t.uuid().auto()`                   | `faker.string.uuid()`      |
 
 ```typescript
-User.factory().make()     // no DB write
-User.factory().create()   // writes to DB
-User.factory().times(5).create()
-User.factory().state({ role: 'admin' }).create()
-User.factory().state((faker) => ({ name: faker.person.firstName() })).make()
+User.factory().make(); // no DB write
+User.factory().create(); // writes to DB
+User.factory().times(5).create();
+User.factory().state({ role: 'admin' }).create();
+User.factory()
+  .state((faker) => ({ name: faker.person.firstName() }))
+  .make();
 ```
 
 ### Step 5 — Migration Syncer (Week 4)
@@ -310,6 +311,7 @@ Read current DB schema (via `INFORMATION_SCHEMA` for MySQL/PG, `PRAGMA` for SQLi
 - New foreign key → `ALTER TABLE ADD CONSTRAINT`
 
 Emit warnings (not automatic migrations) for:
+
 - Column removal (destructive)
 - Column type change (may lose data)
 - Column rename (can't infer intent)

@@ -1,7 +1,7 @@
-# Phase 17 â€” AI as Infrastructure
+# AI as Infrastructure
 
 **Package:** `@faber-js/ai` (enhanced)  
-**Depends on:** `@faber-js/core`, `@faber-js/http`, `@faber-js/auth`, `@faber-js/validation`, `@faber-js/schema` (Phase 15)  
+**Depends on:** `@faber-js/core`, `@faber-js/http`, `@faber-js/auth`, `@faber-js/validation`, `@faber-js/schema`  
 **Estimated effort:** 3-4 weeks  
 **Priority:** High â€” open window closes in 12-18 months
 
@@ -16,6 +16,7 @@ Deepen `@faber-js/ai` so that AI agents are first-class architectural citizens â
 ## Current State
 
 `@faber-js/ai` already provides:
+
 - `Agent` base class with Anthropic SDK integration
 - `@Tool` decorator for marking agent methods as tools
 - `InMemoryConversationMemory`
@@ -23,6 +24,7 @@ Deepen `@faber-js/ai` so that AI agents are first-class architectural citizens â
 - `AiServiceProvider`
 
 **What's missing:**
+
 - Native DI constructor injection into agents
 - Auth policy integration on tools (`@Authorize`)
 - Schema-typed tool inputs and outputs
@@ -37,7 +39,7 @@ Deepen `@faber-js/ai` so that AI agents are first-class architectural citizens â
 
 ### 1. Native DI in Agents
 
-Currently agents must manually resolve services. After this phase, constructor injection works identically to controllers:
+Currently agents must manually resolve services. After this, constructor injection works identically to controllers:
 
 ```typescript
 @Injectable()
@@ -60,7 +62,7 @@ export class CustomerSupportAgent extends Agent {
   @Tool({ description: 'Issue a full or partial refund' })
   async refund(orderId: string, amount: number, reason: string) {
     const order = await this.orders.find(orderId);
-    await this.authorize('refund', order);  // uses policy
+    await this.authorize('refund', order); // uses policy
     return this.payments.refund(orderId, amount, reason);
   }
 }
@@ -121,19 +123,19 @@ The schema declaration is automatically converted to a JSON Schema for the Anthr
 
 ```typescript
 const OrderSummary = schema({
-  orderId:  t.string(),
-  status:   t.enum(['pending', 'shipped', 'delivered', 'cancelled']),
-  items:    t.array(t.object({ name: t.string(), qty: t.integer() })),
-  total:    t.decimal(10, 2),
+  orderId: t.string(),
+  status: t.enum(['pending', 'shipped', 'delivered', 'cancelled']),
+  items: t.array(t.object({ name: t.string(), qty: t.integer() })),
+  total: t.decimal(10, 2),
 });
 
 @Injectable()
 export class OrderAnalysisAgent extends Agent {
   model = 'claude-sonnet-4-6';
-  output = OrderSummary;  // agent MUST return this shape
+  output = OrderSummary; // agent MUST return this shape
 
   async analyze(description: string): Promise<InferSchema<typeof OrderSummary>> {
-    return this.chat(description);  // typed return guaranteed by output schema
+    return this.chat(description); // typed return guaranteed by output schema
   }
 }
 ```
@@ -168,7 +170,7 @@ source.onmessage = (e) => {
 class CreatePostRequest extends FormRequest {
   rules() {
     return {
-      title:   ['required', 'string', 'max:200'],
+      title: ['required', 'string', 'max:200'],
       content: [
         'required',
         'string',
@@ -186,9 +188,9 @@ Configuration:
 ```typescript
 // config/ai.ts
 export default {
-  validationModel: 'claude-haiku-4-5-20251001',  // cheap model for validation
-  validationTimeout: 3000,                         // ms â€” fail open after this
-  failOpen: true,                                  // pass validation if AI is down
+  validationModel: 'claude-haiku-4-5-20251001', // cheap model for validation
+  validationTimeout: 3000, // ms â€” fail open after this
+  failOpen: true, // pass validation if AI is down
 };
 ```
 
@@ -266,19 +268,19 @@ export class SupportAgent extends Agent {
 ```typescript
 export abstract class Agent {
   abstract model: string;
-  output?: SchemaDefinition;    // optional structured output schema
-  memory?: ConversationMemory;  // optional persistence
-  systemPrompt?: string;        // optional system prompt
+  output?: SchemaDefinition; // optional structured output schema
+  memory?: ConversationMemory; // optional persistence
+  systemPrompt?: string; // optional system prompt
 
   // Core methods
-  async chat(message: string, sessionId?: string): Promise<string>
-  async *stream(message: string, sessionId?: string): AsyncGenerator<string>
-  
+  async chat(message: string, sessionId?: string): Promise<string>;
+  async *stream(message: string, sessionId?: string): AsyncGenerator<string>;
+
   // Authorization helper (resolves current request user)
-  protected async authorize(ability: string, resource?: unknown): Promise<void>
-  
+  protected async authorize(ability: string, resource?: unknown): Promise<void>;
+
   // Schema-validated tool invocation (internal)
-  private async invokeTool(name: string, input: unknown): Promise<unknown>
+  private async invokeTool(name: string, input: unknown): Promise<unknown>;
 }
 ```
 
@@ -345,7 +347,7 @@ Add `Agent.stream()` as an async generator wrapping Anthropic's streaming API. A
 
 ### Step 4 â€” Error Explainer + Database Memory (Week 4)
 
-Integrate the error explainer with the DevTools dashboard (Phase 16 dependency). Build `DatabaseConversationMemory` using the ORM, with migration generation.
+Integrate the error explainer with the DevTools dashboard. Build `DatabaseConversationMemory` using the ORM, with migration generation.
 
 ---
 

@@ -1,7 +1,7 @@
-# Phase 18 — Real-Time Channels
+# Real-Time Channels
 
 **Package:** `@faber-js/channels`  
-**Depends on:** `@faber-js/core`, `@faber-js/http`, `@faber-js/router`, `@faber-js/auth`, `@faber-js/schema` (Phase 15)  
+**Depends on:** `@faber-js/core`, `@faber-js/http`, `@faber-js/router`, `@faber-js/auth`, `@faber-js/schema`  
 **Estimated effort:** 4-6 weeks  
 **Priority:** Medium — after schema-first and AI infra
 
@@ -27,6 +27,7 @@ Channel.presence('room.{slug}', [AuthMiddleware], [RoomChannel, 'join']);
 ```
 
 **Channel types:**
+
 - `Channel.public()` — Anyone can connect, no auth required
 - `Channel.private()` — Auth middleware required, one user per channel
 - `Channel.presence()` — Auth required, tracks all connected members, exposes member list
@@ -67,7 +68,7 @@ export class UserChannel extends Channel {
 export class RoomChannel extends Channel {
   async join(socket: Socket, slug: string): Promise<void> {
     const room = await Room.where('slug', slug).firstOrFail();
-    const user = socket.user();  // resolved from auth middleware
+    const user = socket.user(); // resolved from auth middleware
 
     socket.joinPresence(`room.${slug}`, {
       id: user.id,
@@ -123,10 +124,10 @@ class OrderService {
 ```typescript
 // schema/events/OrderShipped.ts
 export const OrderShippedEvent = schema({
-  orderId:        t.integer(),
+  orderId: t.integer(),
   trackingNumber: t.string(),
-  carrier:        t.string(),
-  estimatedDate:  t.date(),
+  carrier: t.string(),
+  estimatedDate: t.date(),
 });
 
 // Broadcasting with schema enforcement
@@ -215,6 +216,7 @@ room.leaving((member) => console.log('Left:', member));
 Uses `@fastify/websocket` (already compatible with Fastify v5). The channel route registration adds a WebSocket route under a single path (e.g., `/_faber/ws`). Channel name resolution happens via the initial handshake message.
 
 Connection flow:
+
 1. Client opens WebSocket to `/_faber/ws`
 2. Client sends `{ type: 'subscribe', channel: 'user.42', token: '...' }`
 3. Server resolves channel, runs middleware, calls the channel handler method
@@ -256,11 +258,11 @@ For multi-process or multi-server deployments, configure a Redis adapter:
 ```typescript
 // config/channels.ts
 export default {
-  driver: process.env.CHANNELS_DRIVER ?? 'memory',  // 'memory' | 'redis'
+  driver: process.env.CHANNELS_DRIVER ?? 'memory', // 'memory' | 'redis'
   redis: {
     host: process.env.REDIS_HOST ?? 'localhost',
     port: parseInt(process.env.REDIS_PORT ?? '6379'),
-    channel: 'faberjs_channels',  // Redis pub/sub channel name
+    channel: 'faberjs_channels', // Redis pub/sub channel name
   },
 };
 ```
@@ -284,6 +286,7 @@ socket.joinPresence(`room.${slug}`, {
 ```
 
 All connected clients automatically receive:
+
 - `presence.init` — the full member list on connection
 - `presence.joined` — when a new member connects
 - `presence.left` — when a member disconnects

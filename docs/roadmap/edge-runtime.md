@@ -1,9 +1,9 @@
-# Phase 19 — Edge-Native and Bun-Ready
+# Edge-Native and Bun-Ready
 
 **Package:** `@faber-js/adapters`  
 **Depends on:** `@faber-js/core`, `@faber-js/http`, `@faber-js/router`  
 **Estimated effort:** 3-5 weeks  
-**Priority:** Medium — plan now, execute after Phase 18
+**Priority:** Medium
 
 ---
 
@@ -57,7 +57,7 @@ import { defineConfig } from '@faber-js/core';
 
 export default defineConfig({
   http: {
-    adapter: 'fastify',    // default
+    adapter: 'fastify', // default
     port: 3000,
     host: '0.0.0.0',
   },
@@ -126,6 +126,7 @@ export class BunAdapter implements HttpAdapter {
 ```
 
 Benefits:
+
 - No Fastify startup overhead
 - Bun's native HTTP server is ~4× faster at cold starts
 - Built-in SQLite (no need for separate SQLite binaries in dev)
@@ -147,7 +148,7 @@ export function createLambdaHandler(app: Application) {
 
   return async (event: APIGatewayEvent, context: Context) => {
     if (!initialized) {
-      await app.boot();  // cold start initialization
+      await app.boot(); // cold start initialization
       initialized = true;
     }
 
@@ -159,6 +160,7 @@ export function createLambdaHandler(app: Application) {
 ```
 
 The handler reuses the app instance across warm invocations. Cold start optimization:
+
 - Lazy service provider loading (only boot what's needed for this route)
 - No Fastify initialization (direct request handling)
 - Target: <50ms cold start for a minimal FaberJS app
@@ -174,6 +176,7 @@ export default createWorkerHandler({ routes });
 ```
 
 Cloudflare Workers constraints:
+
 - No Node.js built-ins (no `fs`, no `net`, etc.)
 - Stateless — no persistent connections
 - No Knex/PostgreSQL (use D1 or external API)
@@ -213,9 +216,7 @@ FaberJS detects the runtime automatically:
 
 ```typescript
 const runtime =
-  typeof Bun !== 'undefined' ? 'bun' :
-  process.env.AWS_LAMBDA_FUNCTION_NAME ? 'lambda' :
-  'node';
+  typeof Bun !== 'undefined' ? 'bun' : process.env.AWS_LAMBDA_FUNCTION_NAME ? 'lambda' : 'node';
 ```
 
 The appropriate adapter is loaded based on the detected runtime unless explicitly overridden in `faber.config.ts`.
@@ -226,15 +227,15 @@ The appropriate adapter is loaded based on the detected runtime unless explicitl
 
 The ORM depends on Knex, which depends on Node.js. For edge runtimes:
 
-| Runtime | ORM Available | Notes |
-|---------|--------------|-------|
-| Node.js + Fastify | Full | PostgreSQL, MySQL, SQLite |
-| Bun | Full | All drivers (Bun is Node-compatible) |
-| AWS Lambda | Full | PostgreSQL, MySQL via connection pooling |
-| Cloudflare Workers | ❌ No | Use D1 driver (planned) or external API |
-| Deno Deploy | Partial | PostgreSQL only, via TCP |
+| Runtime            | ORM Available | Notes                                    |
+| ------------------ | ------------- | ---------------------------------------- |
+| Node.js + Fastify  | Full          | PostgreSQL, MySQL, SQLite                |
+| Bun                | Full          | All drivers (Bun is Node-compatible)     |
+| AWS Lambda         | Full          | PostgreSQL, MySQL via connection pooling |
+| Cloudflare Workers | ❌ No         | Use D1 driver (planned) or external API  |
+| Deno Deploy        | Partial       | PostgreSQL only, via TCP                 |
 
-A `@faber-js/orm-d1` package (post-Phase 19) will provide Cloudflare D1 support using the same ORM API.
+A `@faber-js/orm-d1` package will provide Cloudflare D1 support using the same ORM API.
 
 ---
 
@@ -273,11 +274,13 @@ The `@faber-js/http` package is updated to depend on the adapter interface rathe
 No breaking change. The Fastify adapter is the default. Existing apps work without modification.
 
 To switch to Bun:
+
 1. Install Bun
 2. Update `faber.config.ts` to set `http: { adapter: 'bun' }`
 3. Run `bun run bootstrap/app.ts` instead of `faber serve`
 
 To deploy to Lambda:
+
 1. `pnpm add @faber-js/adapters`
 2. Create `lambda.ts` using `createLambdaHandler(app)`
 3. Bundle with `esbuild` or `bun build`
