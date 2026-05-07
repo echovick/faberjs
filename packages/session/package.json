@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/session",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "FaberJS session management — multi-driver sessions with CSRF protection",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

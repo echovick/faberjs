@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/http-client",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "FaberJS HTTP client — fluent fetch wrapper with retries, faking, and recording",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
