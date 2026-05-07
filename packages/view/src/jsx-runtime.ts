@@ -1,4 +1,6 @@
 import { RawHtml, escape } from './escape';
+import { AttributeBag } from './attribute-bag';
+import { findStringable } from './stringable';
 
 const VOID_ELEMENTS = new Set([
   'area',
@@ -46,9 +48,12 @@ const BOOLEAN_ATTRS = new Set([
 export function renderChildren(children: unknown): string {
   if (children === null || children === undefined || children === false) return '';
   if (children instanceof RawHtml) return children.html;
+  if (children instanceof AttributeBag) return children.toString();
   if (Array.isArray(children)) return (children as unknown[]).map(renderChildren).join('');
   if (typeof children === 'string') return escape(children);
   if (typeof children === 'number') return String(children);
+  const customStr = findStringable(children);
+  if (customStr !== undefined) return escape(customStr);
   return '';
 }
 

@@ -68,12 +68,31 @@ export class ViewResponse implements IViewResponse {
   }
 
   /**
+   * Render and return concatenated content for multiple named fragments when
+   * `condition` is true; otherwise return the full rendered view. Mirrors
+   * Laravel's `->fragmentsIf(condition, [...names])`.
+   */
+  async fragmentsIf(condition: boolean, names: string[]): Promise<string> {
+    const html = await this.render();
+    return condition ? extractFragments(html, names) : html;
+  }
+
+  /**
    * Return a full response normally, or a fragment response when `condition`
    * is true. Mirrors Laravel's `->fragmentIf(condition, 'name')`.
    */
   async toFragmentResponseIf(condition: boolean, name: string): Promise<Response> {
     const html = await this.render();
     return Response.html(condition ? extractFragment(html, name) : html);
+  }
+
+  /**
+   * Return a full response normally, or a multi-fragment response when
+   * `condition` is true. Mirrors Laravel's `->fragmentsIf(...)`.
+   */
+  async toFragmentsResponseIf(condition: boolean, names: string[]): Promise<Response> {
+    const html = await this.render();
+    return Response.html(condition ? extractFragments(html, names) : html);
   }
 
   #fireCreators(): void {

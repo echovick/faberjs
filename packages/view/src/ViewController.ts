@@ -48,4 +48,17 @@ export abstract class ViewController extends Controller {
   ): Promise<Response> {
     return this.makeView(viewName, data).toFragmentResponseIf(condition, fragmentName);
   }
+
+  /**
+   * Return the full view response normally, or a multi-fragment response
+   * (concatenated) when `condition` is true.
+   */
+  protected async viewFragmentsIf(
+    condition: boolean,
+    viewName: string,
+    fragmentNames: string[],
+    data: Record<string, unknown> = {},
+  ): Promise<Response> {
+    return this.makeView(viewName, data).toFragmentsResponseIf(condition, fragmentNames);
+  }
 }

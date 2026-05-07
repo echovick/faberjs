@@ -1,3 +1,5 @@
+import { findStringable } from './stringable';
+
 export class RawHtml {
   constructor(readonly html: string) {}
 }
@@ -14,8 +16,14 @@ const ESCAPE_MAP: Record<string, string> = {
   "'": '&#39;',
 };
 
+function htmlEscape(str: string): string {
+  return str.replace(/[&<>"']/g, (ch) => ESCAPE_MAP[ch] ?? ch);
+}
+
 export function escape(value: unknown): string {
   if (value === null || value === undefined || value === false) return '';
   if (value instanceof RawHtml) return value.html;
-  return String(value).replace(/[&<>"']/g, (ch) => ESCAPE_MAP[ch] ?? ch);
+  const customStr = findStringable(value);
+  if (customStr !== undefined) return htmlEscape(customStr);
+  return htmlEscape(String(value));
 }

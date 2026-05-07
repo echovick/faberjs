@@ -39,6 +39,11 @@ export class ValidationErrors {
   isNotEmpty(): boolean {
     return !this.isEmpty();
   }
+
+  /** Returns the underlying errors map. Useful when feeding into another bag. */
+  toRecord(): Record<string, string | string[]> {
+    return { ...this.#errors };
+  }
 }
 
 // ── CsrfField ─────────────────────────────────────────────────────────
@@ -82,27 +87,38 @@ export function MethodField({ method }: { method: string }): RawHtml {
  *
  * Errors are resolved in this priority:
  *  1. Explicit `errors` prop (a ValidationErrors instance or plain object)
- *  2. Errors stored in the render context (set via ViewRenderer options)
+ *  2. The named error bag from `ctx.errorBags` when `bag` is provided
+ *  3. The default error bag from `ctx.errors`
  *
- * If `children` is a function `(message: string) => RawHtml`, it is called
- * with the first error message. Otherwise, static children are rendered when
- * an error exists. If no children are provided, a default `<p>` is rendered.
+ * `children` may be a function `(message) => unknown` to receive the first
+ * error message, static JSX rendered when an error exists, or omitted to fall
+ * back to a default `<p class="faber-error">` element.
+ *
+ * `fallback` renders when there is NO error for the field — useful for the
+ * Blade `@error('email') is-invalid @else is-valid @enderror` pattern.
  *
  * @example
- * <FieldError field="title" errors={errors} />
+ * <FieldError field="title" />
  *
- * <FieldError field="email" errors={errors}>
+ * <FieldError field="email" bag="login">
  *   {(msg) => <p class="text-red-500">{msg}</p>}
  * </FieldError>
+ *
+ * @example  // class-string variant with else fallback
+ * <input class={<FieldError field="email" fallback="is-valid">is-invalid</FieldError>} />
  */
 export function FieldError({
   field,
+  bag: bagName,
   errors: prop,
   children,
+  fallback,
 }: {
   field: string;
+  bag?: string;
   errors?: ValidationErrors | Record<string, string | string[]>;
-  children?: unknown;
+  children?: unknown | ((message: string) => unknown);
+  fallback?: unknown;
 }): RawHtml {
   let bag: ValidationErrors;
 
@@ -112,14 +128,25 @@ export function FieldError({
     bag = new ValidationErrors(prop as Record<string, string | string[]>);
   } else {
     const ctx = getRenderContext();
-    bag = new ValidationErrors(ctx?.errors ?? {});
+    if (bagName !== undefined) {
+      bag = new ValidationErrors(ctx?.errorBags?.[bagName] ?? {});
+    } else {
+      bag = new ValidationErrors(ctx?.errors ?? {});
+    }
   }
 
   const message = bag.first(field);
-  if (!message) return raw('');
+
+  if (!message) {
+    if (fallback !== undefined && fallback !== null) {
+      return new RawHtml(renderChildren(fallback));
+    }
+    return raw('');
+  }
 
   if (typeof children === 'function') {
-    return (children as (msg: string) => RawHtml)(message);
+    const out = (children as (msg: string) => unknown)(message);
+    return new RawHtml(renderChildren(out));
   }
 
   if (children !== undefined && children !== null) {

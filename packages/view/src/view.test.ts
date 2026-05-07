@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { escape, raw, RawHtml } from './escape';
-import { jsx, jsxs, h, Fragment, Unsafe } from './jsx-runtime';
+import { jsx, jsxs, h, Fragment, Unsafe, renderChildren } from './jsx-runtime';
 import { ViewRenderer } from './ViewRenderer';
 import { ViewResponse } from './ViewResponse';
 import { ViewNotFoundException } from './ViewNotFoundException';
@@ -12,10 +12,19 @@ import { loop } from './loop';
 import { ValidationErrors, CsrfField, MethodField, FieldError } from './forms';
 import { Slot, useSlots } from './slots';
 import { Push, Prepend, PushIf, PushOnce, PrependOnce, Stack, HasStack, Once } from './stacks';
-import { Section, Yield, HasSection, SectionMissing } from './inheritance';
+import { Section, Yield, HasSection, SectionMissing, ParentSection } from './inheritance';
 import { ViewFragment } from './fragments';
 import { Env, EnvNot, Production } from './env';
 import { withRenderContext } from './render-context';
+import { AttributeBag, PrependsValue, attributeBag } from './attribute-bag';
+import { Auth, Guest, useAuth } from './auth';
+import { Session, useSession } from './session';
+import { Aware, useAware, provideAware } from './aware';
+import { Js } from './js';
+import { registerStringable, clearStringables } from './stringable';
+import { DynamicComponent, registerComponent, clearComponents } from './dynamic-component';
+import { useService } from './services';
+import { Application } from '@faber-js/core';
 
 // ── escape() ────────────────────────────────────────────────────────
 
@@ -870,6 +879,66 @@ describe('FieldError', () => {
     });
     expect(html).toBe('<p class="faber-error">Invalid email.</p>');
   });
+
+  it('reads from a named error bag when bag prop is given', () => {
+    const html = withRenderContext(() => FieldError({ field: 'email', bag: 'login' }).html, {
+      errors: { email: 'default-bag-error' },
+      errorBags: {
+        login: { email: 'login-bag-error' },
+        register: { email: 'register-bag-error' },
+      },
+    });
+    expect(html).toBe('<p class="faber-error">login-bag-error</p>');
+  });
+
+  it('returns empty when the named bag has no error for the field', () => {
+    const html = withRenderContext(() => FieldError({ field: 'email', bag: 'login' }).html, {
+      errorBags: { login: {} },
+    });
+    expect(html).toBe('');
+  });
+
+  it('renders fallback children when no error exists for the field', () => {
+    const out = FieldError({
+      field: 'body',
+      errors,
+      fallback: raw('looks-good'),
+    });
+    expect(out.html).toBe('looks-good');
+  });
+
+  it('does not render fallback when an error exists', () => {
+    const out = FieldError({
+      field: 'title',
+      errors,
+      fallback: raw('looks-good'),
+    });
+    expect(out.html).toBe('<p class="faber-error">Title is required.</p>');
+  });
+
+  it('class-string usage: error or fallback yields the right class', () => {
+    const errBag = new ValidationErrors({ email: 'bad' });
+    const errClass = FieldError({
+      field: 'email',
+      errors: errBag,
+      children: 'is-invalid',
+      fallback: 'is-valid',
+    });
+    expect(errClass.html).toBe('is-invalid');
+
+    const okClass = FieldError({
+      field: 'name',
+      errors: errBag,
+      children: 'is-invalid',
+      fallback: 'is-valid',
+    });
+    expect(okClass.html).toBe('is-valid');
+  });
+
+  it('ValidationErrors.toRecord returns the underlying map', () => {
+    const v = new ValidationErrors({ a: '1', b: ['2', '3'] });
+    expect(v.toRecord()).toEqual({ a: '1', b: ['2', '3'] });
+  });
 });
 
 // ── Slot / useSlots() ─────────────────────────────────────────────────
@@ -915,6 +984,38 @@ describe('Slot / useSlots()', () => {
     const children = Slot({ name: 'head', children: '<meta>' });
     const { slot } = useSlots(children);
     expect(slot.html.trim()).toBe('');
+  });
+
+  it('SlotValue exposes isEmpty / hasContent / hasActualContent', () => {
+    const children = h(
+      Fragment,
+      null,
+      Slot({ name: 'title', children: 'Hello' }),
+      Slot({ name: 'meta', children: raw('<!-- only a comment -->') }),
+      Slot({ name: 'blank', children: '' }),
+    );
+    const { title, meta, blank, slot } = useSlots(children);
+
+    expect(title.isEmpty()).toBe(false);
+    expect(title.hasContent()).toBe(true);
+    expect(title.hasActualContent()).toBe(true);
+
+    expect(meta.isEmpty()).toBe(false);
+    expect(meta.hasContent()).toBe(true);
+    expect(meta.hasActualContent()).toBe(false);
+
+    expect(blank.isEmpty()).toBe(true);
+    expect(blank.hasContent()).toBe(false);
+    expect(blank.hasActualContent()).toBe(false);
+
+    // The default slot ends up empty when only named slots are present
+    expect(slot.isEmpty()).toBe(true);
+  });
+
+  it('SlotValue interpolates as raw HTML in JSX', () => {
+    const { title } = useSlots(Slot({ name: 'title', children: raw('<b>x</b>') }));
+    const out = jsx('h1', { children: title }) as RawHtml;
+    expect(out.html).toBe('<h1><b>x</b></h1>');
   });
 });
 
@@ -1037,6 +1138,50 @@ describe('Section / Yield', () => {
       expect(Yield({ name: 'nothing' }).html).toBe('');
     });
   });
+
+  it('Section append concatenates with prior registration', () => {
+    withRenderContext(() => {
+      Section({ name: 'scripts', children: raw('<a></a>') });
+      Section({ name: 'scripts', append: true, children: raw('<b></b>') });
+      expect(Yield({ name: 'scripts' }).html).toBe('<a></a><b></b>');
+    });
+  });
+
+  it('Section prepend places content before prior registration', () => {
+    withRenderContext(() => {
+      Section({ name: 's', children: raw('<a></a>') });
+      Section({ name: 's', prepend: true, children: raw('<b></b>') });
+      expect(Yield({ name: 's' }).html).toBe('<b></b><a></a>');
+    });
+  });
+
+  it('ParentSection token is replaced by the Yield default children', () => {
+    withRenderContext(() => {
+      Section({
+        name: 'sidebar',
+        children: h(Fragment, null, ParentSection(), raw('<p>Extra</p>')),
+      });
+      const out = Yield({ name: 'sidebar', children: raw('<nav>Master</nav>') });
+      expect(out.html).toBe('<nav>Master</nav><p>Extra</p>');
+    });
+  });
+
+  it('ParentSection inside an unregistered section is not echoed', () => {
+    withRenderContext(() => {
+      const out = Yield({ name: 'never', children: raw('master') });
+      expect(out.html).toBe('master');
+    });
+  });
+
+  it('multiple ParentSection tokens are all replaced', () => {
+    withRenderContext(() => {
+      Section({
+        name: 'x',
+        children: h(Fragment, null, ParentSection(), raw('|'), ParentSection()),
+      });
+      expect(Yield({ name: 'x', children: raw('M') }).html).toBe('M|M');
+    });
+  });
 });
 
 // ── HasSection / SectionMissing ───────────────────────────────────────
@@ -1123,6 +1268,58 @@ describe('ViewRenderer.renderFragment()', () => {
     const renderer = new ViewRenderer({ viewsDir: tmpDir, extension: '.view.mjs' });
     await expect(renderer.renderFragment('missing', 'simple', {})).rejects.toThrow('missing');
   });
+
+  it('renderFragmentsIf returns full view when condition is false', async () => {
+    writeFileSync(
+      join(tmpDir, 'multi.view.mjs'),
+      `export default function P() {
+         return { html:
+           '<!--FABER-FRAGMENT:a:S--><a/><!--FABER-FRAGMENT:a:E-->' +
+           '<!--FABER-FRAGMENT:b:S--><b/><!--FABER-FRAGMENT:b:E-->'
+         };
+       }`,
+    );
+    const renderer = new ViewRenderer({ viewsDir: tmpDir, extension: '.view.mjs' });
+    const html = await renderer.renderFragmentsIf(false, ['a', 'b'], 'multi', {});
+    expect(html).toContain('<!--FABER-FRAGMENT:a:S-->');
+    expect(html).toContain('<!--FABER-FRAGMENT:b:S-->');
+  });
+
+  it('renderFragmentsIf returns concatenated fragments when condition is true', async () => {
+    writeFileSync(
+      join(tmpDir, 'multi2.view.mjs'),
+      `export default function P() {
+         return { html:
+           '<header/>' +
+           '<!--FABER-FRAGMENT:a:S--><a/><!--FABER-FRAGMENT:a:E-->' +
+           '<!--FABER-FRAGMENT:b:S--><b/><!--FABER-FRAGMENT:b:E-->'
+         };
+       }`,
+    );
+    const renderer = new ViewRenderer({ viewsDir: tmpDir, extension: '.view.mjs' });
+    const html = await renderer.renderFragmentsIf(true, ['a', 'b'], 'multi2', {});
+    expect(html).toBe('<a/><b/>');
+  });
+});
+
+// ── ViewResponse.fragmentsIf() ───────────────────────────────────────
+
+describe('ViewResponse.fragmentsIf', () => {
+  it('extractFragments path: condition true → concatenated', async () => {
+    const html =
+      '<x/>' +
+      '<!--FABER-FRAGMENT:a:S--><a/><!--FABER-FRAGMENT:a:E-->' +
+      '<!--FABER-FRAGMENT:b:S--><b/><!--FABER-FRAGMENT:b:E-->';
+    // Simulate by creating a ViewResponse subclass that returns canned html
+    class FakeResponse extends ViewResponse {
+      override async render(): Promise<string> {
+        return html;
+      }
+    }
+    const vr = new FakeResponse('x');
+    expect(await vr.fragmentsIf(true, ['a', 'b'])).toBe('<a/><b/>');
+    expect(await vr.fragmentsIf(false, ['a', 'b'])).toBe(html);
+  });
 });
 
 // ── ViewRenderer.renderString() ───────────────────────────────────────
@@ -1190,5 +1387,546 @@ describe('Env / EnvNot / Production', () => {
     expect(Production({ children: raw('prod') }).html).toBe('prod');
     process.env['APP_ENV'] = 'development';
     expect(Production({ children: raw('prod') }).html).toBe('');
+  });
+});
+
+// ── AttributeBag ──────────────────────────────────────────────────────
+
+describe('AttributeBag', () => {
+  it('exposes attrs as own enumerable props for JSX spread', () => {
+    const bag = attributeBag({ id: 'a', 'data-x': '1' });
+    const spread = { ...bag };
+    expect(spread).toEqual({ id: 'a', 'data-x': '1' });
+  });
+
+  it('normalizes className to class on input', () => {
+    const bag = attributeBag({ className: 'btn' });
+    expect(bag.get('class')).toBe('btn');
+    expect(bag.has('className')).toBe(true);
+  });
+
+  it('drops undefined values but keeps null/false (rendered later)', () => {
+    const bag = attributeBag({ a: undefined, b: null, c: false, d: 'ok' });
+    expect(bag.has('a')).toBe(false);
+    expect(bag.has('b')).toBe(true);
+    expect(bag.has('c')).toBe(true);
+    expect(bag.has('d')).toBe(true);
+  });
+
+  it('toString renders escaped attributes with leading space', () => {
+    const bag = attributeBag({ class: 'a"b', 'data-x': '<x>' });
+    expect(bag.toString()).toBe(' class="a&quot;b" data-x="&lt;x&gt;"');
+  });
+
+  it('toString returns empty string for an empty bag', () => {
+    expect(attributeBag().toString()).toBe('');
+  });
+
+  it('toString emits boolean true as bare attribute', () => {
+    expect(attributeBag({ disabled: true, hidden: true }).toString()).toBe(' disabled hidden');
+  });
+
+  it('toString skips false/null/undefined values', () => {
+    expect(attributeBag({ a: 'x', b: false, c: null }).toString()).toBe(' a="x"');
+  });
+
+  it('renders directly when echoed in JSX children', () => {
+    const bag = attributeBag({ class: 'btn' });
+    const out = jsx('div', { children: bag }) as RawHtml;
+    expect(out.html).toBe('<div> class="btn"</div>');
+  });
+
+  it('merge concatenates classes (default first)', () => {
+    const bag = attributeBag({ class: 'mt-4' });
+    const merged = bag.merge({ class: 'alert alert-error' });
+    expect(merged.get('class')).toBe('alert alert-error mt-4');
+  });
+
+  it('merge keeps existing non-class value when one is provided', () => {
+    const bag = attributeBag({ type: 'submit' });
+    const merged = bag.merge({ type: 'button' });
+    expect(merged.get('type')).toBe('submit');
+  });
+
+  it('merge fills in default for non-class when value is missing', () => {
+    const bag = attributeBag({});
+    const merged = bag.merge({ type: 'button' });
+    expect(merged.get('type')).toBe('button');
+  });
+
+  it('prepends marks a default value to be prepended onto incoming', () => {
+    const bag = attributeBag({ 'data-controller': 'extra' });
+    const merged = bag.merge({ 'data-controller': bag.prepends('profile-controller') });
+    expect(merged.get('data-controller')).toBe('profile-controller extra');
+  });
+
+  it('prepends used with no incoming value sets just the prepended value', () => {
+    const bag = attributeBag({});
+    const merged = bag.merge({ 'data-controller': bag.prepends('only') });
+    expect(merged.get('data-controller')).toBe('only');
+  });
+
+  it('prepends() returns a PrependsValue', () => {
+    expect(attributeBag().prepends('x')).toBeInstanceOf(PrependsValue);
+  });
+
+  it('classes() conditionally merges classes with existing class attr', () => {
+    const bag = attributeBag({ class: 'p-4' });
+    const out = bag.classes(['btn', { 'bg-red': true, hidden: false }]);
+    expect(out.get('class')).toBe('btn bg-red p-4');
+  });
+
+  it('filter retains attributes matching the predicate', () => {
+    const bag = attributeBag({ a: 1, b: 2, c: 3 });
+    const out = bag.filter((_, k) => k !== 'b');
+    expect({ ...out }).toEqual({ a: 1, c: 3 });
+  });
+
+  it('whereStartsWith keeps only matching keys', () => {
+    const bag = attributeBag({ 'wire:model': 'x', 'wire:click': 'y', class: 'p-4' });
+    expect({ ...bag.whereStartsWith('wire:') }).toEqual({
+      'wire:model': 'x',
+      'wire:click': 'y',
+    });
+  });
+
+  it('whereDoesntStartWith excludes matching keys', () => {
+    const bag = attributeBag({ 'wire:model': 'x', class: 'p-4' });
+    expect({ ...bag.whereDoesntStartWith('wire:') }).toEqual({ class: 'p-4' });
+  });
+
+  it('first returns the first attribute value', () => {
+    const bag = attributeBag({ 'wire:model': 'foo', 'wire:click': 'bar' });
+    expect(bag.whereStartsWith('wire:').first()).toBe('foo');
+  });
+
+  it('first returns undefined for an empty bag', () => {
+    expect(attributeBag().first()).toBeUndefined();
+  });
+
+  it('has(key) and has([keys]) check membership', () => {
+    const bag = attributeBag({ name: 'x', class: 'y' });
+    expect(bag.has('name')).toBe(true);
+    expect(bag.has(['name', 'class'])).toBe(true);
+    expect(bag.has(['name', 'missing'])).toBe(false);
+  });
+
+  it('hasAny returns true when at least one key is present', () => {
+    const bag = attributeBag({ href: '/x' });
+    expect(bag.hasAny(['href', ':href', 'v-bind:href'])).toBe(true);
+    expect(bag.hasAny(['target', 'rel'])).toBe(false);
+  });
+
+  it('only and except produce subset bags', () => {
+    const bag = attributeBag({ a: 1, b: 2, c: 3 });
+    expect({ ...bag.only(['a', 'b']) }).toEqual({ a: 1, b: 2 });
+    expect({ ...bag.except(['a']) }).toEqual({ b: 2, c: 3 });
+  });
+
+  it('isEmpty / isNotEmpty work as expected', () => {
+    expect(attributeBag().isEmpty()).toBe(true);
+    expect(attributeBag({ x: 1 }).isNotEmpty()).toBe(true);
+  });
+
+  it('AttributeBag instance is an instance of AttributeBag', () => {
+    expect(attributeBag()).toBeInstanceOf(AttributeBag);
+  });
+
+  it('end-to-end: JSX component using attribute bag merges classes', () => {
+    function Alert(props: { type: string; message: string; [k: string]: unknown }): RawHtml {
+      const { type, message, ...rest } = props;
+      const attrs = attributeBag(rest);
+      return jsx('div', {
+        ...attrs.merge({ class: `alert alert-${type}` }),
+        children: message,
+      }) as RawHtml;
+    }
+    const out = (Alert as unknown as (p: Record<string, unknown>) => RawHtml)({
+      type: 'error',
+      message: 'Oops',
+      class: 'mb-4',
+      id: 'x',
+    });
+    expect(out.html).toBe('<div class="alert alert-error mb-4" id="x">Oops</div>');
+  });
+});
+
+// ── Auth / Guest ──────────────────────────────────────────────────────
+
+describe('Auth / Guest', () => {
+  it('Auth renders children when user is authenticated', () => {
+    withRenderContext(
+      () => {
+        expect(Auth({ children: raw('signed-in') }).html).toBe('signed-in');
+      },
+      { auth: { user: { id: 1 }, check: () => true } },
+    );
+  });
+
+  it('Auth renders empty when user is not authenticated', () => {
+    withRenderContext(
+      () => {
+        expect(Auth({ children: raw('signed-in') }).html).toBe('');
+      },
+      { auth: { check: () => false } },
+    );
+  });
+
+  it('Auth renders empty when no auth context is set', () => {
+    withRenderContext(() => {
+      expect(Auth({ children: raw('x') }).html).toBe('');
+    });
+  });
+
+  it('Auth passes guard to check()', () => {
+    let receivedGuard: string | undefined = 'unset';
+    withRenderContext(
+      () => {
+        Auth({ guard: 'admin', children: raw('') });
+      },
+      {
+        auth: {
+          check: (guard) => {
+            receivedGuard = guard;
+            return false;
+          },
+        },
+      },
+    );
+    expect(receivedGuard).toBe('admin');
+  });
+
+  it('Guest renders children only when not authenticated', () => {
+    withRenderContext(
+      () => {
+        expect(Guest({ children: raw('hi guest') }).html).toBe('hi guest');
+      },
+      { auth: { check: () => false } },
+    );
+    withRenderContext(
+      () => {
+        expect(Guest({ children: raw('hi guest') }).html).toBe('');
+      },
+      { auth: { check: () => true } },
+    );
+  });
+
+  it('Guest renders children when there is no auth context', () => {
+    withRenderContext(() => {
+      expect(Guest({ children: raw('hi') }).html).toBe('hi');
+    });
+  });
+
+  it('useAuth returns the current AuthContext from render context', () => {
+    const ctx = { user: { id: 99 }, check: () => true };
+    withRenderContext(
+      () => {
+        expect(useAuth()).toBe(ctx);
+      },
+      { auth: ctx },
+    );
+  });
+
+  it('useAuth returns undefined outside a render context', () => {
+    expect(useAuth()).toBeUndefined();
+  });
+});
+
+// ── Session ───────────────────────────────────────────────────────────
+
+describe('Session component', () => {
+  function makeSession(values: Record<string, unknown>): {
+    has: (k: string) => boolean;
+    get: (k: string) => unknown;
+  } {
+    return {
+      has: (k: string): boolean => k in values,
+      get: (k: string): unknown => values[k],
+    };
+  }
+
+  it('renders children when the session value exists', () => {
+    withRenderContext(
+      () => {
+        expect(Session({ name: 'status', children: raw('ok') }).html).toBe('ok');
+      },
+      { session: makeSession({ status: 'saved' }) },
+    );
+  });
+
+  it('renders empty when the session key does not exist', () => {
+    withRenderContext(
+      () => {
+        expect(Session({ name: 'status', children: raw('ok') }).html).toBe('');
+      },
+      { session: makeSession({}) },
+    );
+  });
+
+  it('passes the session value into a function child', () => {
+    withRenderContext(
+      () => {
+        const out = Session({
+          name: 'flash',
+          children: (v: unknown) => raw(`<p>${String(v)}</p>`),
+        });
+        expect(out.html).toBe('<p>hi!</p>');
+      },
+      { session: makeSession({ flash: 'hi!' }) },
+    );
+  });
+
+  it('renders empty when no session context is set', () => {
+    withRenderContext(() => {
+      expect(Session({ name: 'status', children: raw('x') }).html).toBe('');
+    });
+  });
+
+  it('useSession returns the current SessionContext', () => {
+    const session = makeSession({ k: 'v' });
+    withRenderContext(
+      () => {
+        expect(useSession()).toBe(session);
+      },
+      { session },
+    );
+  });
+});
+
+// ── Aware ──────────────────────────────────────────────────────────────
+
+describe('Aware', () => {
+  it('useAware returns undefined when no frame is pushed', () => {
+    expect(useAware('color')).toBeUndefined();
+  });
+
+  it('Aware exposes values to descendants rendered through a thunk', () => {
+    function Item(): RawHtml {
+      return raw(`color=${String(useAware<string>('color'))}`);
+    }
+    const out = Aware({
+      values: { color: 'purple' },
+      children: () => Item(),
+    });
+    expect(out.html).toBe('color=purple');
+  });
+
+  it('Aware pops its frame after rendering (no leakage to siblings)', () => {
+    Aware({ values: { color: 'red' }, children: () => raw('') });
+    expect(useAware('color')).toBeUndefined();
+  });
+
+  it('Aware pops its frame even when the thunk throws', () => {
+    expect(() =>
+      Aware({
+        values: { color: 'red' },
+        children: () => {
+          throw new Error('boom');
+        },
+      }),
+    ).toThrow(/boom/);
+    expect(useAware('color')).toBeUndefined();
+  });
+
+  it('nested Aware shadows outer values within the inner scope', () => {
+    function Probe(): RawHtml {
+      return raw(String(useAware<string>('color')));
+    }
+    const out = Aware({
+      values: { color: 'outer' },
+      children: () =>
+        h(
+          Fragment,
+          null,
+          Probe(),
+          Aware({ values: { color: 'inner' }, children: () => Probe() }),
+          Probe(),
+        ),
+    });
+    expect(out.html).toBe('outerinnerouter');
+  });
+
+  it('provideAware runs a function with values pushed onto the stack', () => {
+    const result = provideAware({ color: 'blue' }, () => useAware<string>('color'));
+    expect(result).toBe('blue');
+    expect(useAware('color')).toBeUndefined();
+  });
+
+  it('Aware accepts non-function children for static interpolation', () => {
+    const out = Aware({ values: { color: 'red' }, children: raw('static') });
+    expect(out.html).toBe('static');
+  });
+});
+
+// ── Js.from ────────────────────────────────────────────────────────────
+
+describe('Js.from', () => {
+  it('produces a JSON.parse expression that round-trips through eval', () => {
+    const data = { name: 'Bob', age: 42 };
+    const out = Js.from(data) as RawHtml;
+    const parsed = new Function(`return ${out.html}`)() as Record<string, unknown>;
+    expect(parsed).toEqual(data);
+  });
+
+  it('escapes HTML-sensitive characters to prevent script tag breakouts', () => {
+    const out = Js.from({ html: '</script><script>x</script>' }) as RawHtml;
+    expect(out.html).not.toContain('</script>');
+    expect(out.html).not.toContain('<script>');
+    const parsed = new Function(`return ${out.html}`)() as { html: string };
+    expect(parsed.html).toBe('</script><script>x</script>');
+  });
+
+  it('escapes & to prevent HTML entity ambiguity', () => {
+    const out = Js.from('a&b') as RawHtml;
+    expect(out.html).not.toMatch(/[^\\]&/);
+  });
+
+  it('escapes U+2028 and U+2029 (otherwise illegal in JS string literals)', () => {
+    const out = Js.from({ s: '  ' }) as RawHtml;
+    expect(out.html).toContain('\\u2028');
+    expect(out.html).toContain('\\u2029');
+    expect(out.html).not.toContain(' ');
+    expect(out.html).not.toContain(' ');
+  });
+
+  it('renders null for undefined values', () => {
+    const out = Js.from(undefined) as RawHtml;
+    const parsed = new Function(`return ${out.html}`)();
+    expect(parsed).toBeNull();
+  });
+
+  it('returns a RawHtml so JSX does not double-escape it', () => {
+    const inner = Js.from({ ok: true });
+    const out = jsx('script', { children: inner }) as RawHtml;
+    expect(out.html).toBe(`<script>${(inner as RawHtml).html}</script>`);
+  });
+});
+
+// ── Stringable handlers ────────────────────────────────────────────────
+
+describe('Custom stringable handlers', () => {
+  class Money {
+    constructor(
+      readonly amount: number,
+      readonly currency: string,
+    ) {}
+  }
+
+  afterEach(() => {
+    clearStringables();
+  });
+
+  it('escape() uses a registered handler instead of String(value)', () => {
+    registerStringable(Money, (m: Money) => `${m.amount.toFixed(2)} ${m.currency}`);
+    expect(escape(new Money(12.5, 'USD'))).toBe('12.50 USD');
+  });
+
+  it('handler output is HTML-escaped', () => {
+    registerStringable(Money, () => '<script>x</script>');
+    expect(escape(new Money(0, ''))).toBe('&lt;script&gt;x&lt;/script&gt;');
+  });
+
+  it('renderChildren applies handler when echoing instances in JSX', () => {
+    registerStringable(Money, (m: Money) => `$${m.amount}`);
+    const out = jsx('span', { children: new Money(5, 'USD') }) as RawHtml;
+    expect(out.html).toBe('<span>$5</span>');
+  });
+
+  it('last-registered handler wins for the same class', () => {
+    registerStringable(Money, () => 'first');
+    registerStringable(Money, () => 'second');
+    expect(escape(new Money(0, ''))).toBe('second');
+  });
+
+  it('subclasses inherit registrations on the parent class', () => {
+    class Cents extends Money {}
+    registerStringable(Money, (m: Money) => `${m.amount}c`);
+    expect(escape(new Cents(99, 'USD'))).toBe('99c');
+  });
+
+  it('clearStringables removes all registrations', () => {
+    registerStringable(Money, () => 'x');
+    clearStringables();
+    expect(escape(new Money(0, ''))).toBe('[object Object]');
+  });
+});
+
+// ── DynamicComponent ───────────────────────────────────────────────────
+
+describe('DynamicComponent', () => {
+  afterEach(() => {
+    clearComponents();
+  });
+
+  it('renders a component passed as a function reference', () => {
+    const Greet = (props: Record<string, unknown>): RawHtml =>
+      raw(`Hello ${String(props['name'])}`);
+    const out = DynamicComponent({ component: Greet, name: 'Bob' });
+    expect(out.html).toBe('Hello Bob');
+  });
+
+  it('renders a component looked up by registered name', () => {
+    function Alert({ type, children }: { type: string; children?: unknown }): RawHtml {
+      return raw(`<div class="alert-${type}">${renderChildren(children)}</div>`);
+    }
+    registerComponent('alert', Alert as (p: Record<string, unknown>) => RawHtml);
+    const out = DynamicComponent({
+      component: 'alert',
+      type: 'error',
+      children: 'Oops',
+    });
+    expect(out.html).toBe('<div class="alert-error">Oops</div>');
+  });
+
+  it('throws when the component name is not registered', () => {
+    expect(() => DynamicComponent({ component: 'nope' })).toThrow(/no component registered/);
+  });
+
+  it('throws when component is not a function or string', () => {
+    expect(() => DynamicComponent({ component: 42 as unknown as string })).toThrow(
+      /must be a function or a registered name/,
+    );
+  });
+
+  it('forwards remaining props to the resolved component', () => {
+    function Probe(props: Record<string, unknown>): RawHtml {
+      return raw(JSON.stringify(props));
+    }
+    const out = DynamicComponent({
+      component: Probe,
+      a: 1,
+      b: 'x',
+      children: 'kids',
+    });
+    expect(out.html).toBe('{"a":1,"b":"x","children":"kids"}');
+  });
+
+  it('wraps a string return value in RawHtml', () => {
+    const Inline = (): string => '<b>raw</b>';
+    const out = DynamicComponent({ component: Inline });
+    expect(out.html).toBe('<b>raw</b>');
+  });
+});
+
+// ── useService ─────────────────────────────────────────────────────────
+
+describe('useService', () => {
+  afterEach(() => {
+    Application.clearInstance();
+  });
+
+  it('resolves a service from the IoC container by token', () => {
+    const app = new Application();
+    const metrics = { monthlyRevenue: () => 42 };
+    app.instance('metrics', metrics);
+
+    const resolved = useService<{ monthlyRevenue: () => number }>('metrics');
+    expect(resolved).toBe(metrics);
+    expect(resolved.monthlyRevenue()).toBe(42);
+  });
+
+  it('throws ApplicationNotInitializedException when no app exists', () => {
+    Application.clearInstance();
+    expect(() => useService('any')).toThrow();
   });
 });

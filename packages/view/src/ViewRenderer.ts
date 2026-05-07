@@ -104,7 +104,9 @@ export class ViewRenderer {
 
   async renderView(
     viewResponse: IViewResponse,
-    contextOptions: Partial<Pick<RenderContextStore, 'csrf' | 'errors'>> = {},
+    contextOptions: Partial<
+      Pick<RenderContextStore, 'csrf' | 'errors' | 'errorBags' | 'auth' | 'session'>
+    > = {},
   ): Promise<string> {
     await this.fireComposers(viewResponse);
     const data = { ...this.#sharedData, ...viewResponse.getData() };
@@ -118,7 +120,9 @@ export class ViewRenderer {
   renderComponent<P extends Record<string, unknown>>(
     component: ViewComponent<P>,
     props: P,
-    contextOptions: Partial<Pick<RenderContextStore, 'csrf' | 'errors'>> = {},
+    contextOptions: Partial<
+      Pick<RenderContextStore, 'csrf' | 'errors' | 'errorBags' | 'auth' | 'session'>
+    > = {},
   ): string {
     return renderStorage.run(createRenderContext(contextOptions), () => component(props).html);
   }
@@ -126,7 +130,9 @@ export class ViewRenderer {
   async render<P extends Record<string, unknown>>(
     name: string,
     props: P,
-    contextOptions: Partial<Pick<RenderContextStore, 'csrf' | 'errors'>> = {},
+    contextOptions: Partial<
+      Pick<RenderContextStore, 'csrf' | 'errors' | 'errorBags' | 'auth' | 'session'>
+    > = {},
   ): Promise<string> {
     const merged = { ...this.#sharedData, ...props };
     return renderStorage.run(createRenderContext(contextOptions), () =>
@@ -144,7 +150,9 @@ export class ViewRenderer {
     fragmentName: string,
     viewName: string,
     props: P,
-    contextOptions: Partial<Pick<RenderContextStore, 'csrf' | 'errors'>> = {},
+    contextOptions: Partial<
+      Pick<RenderContextStore, 'csrf' | 'errors' | 'errorBags' | 'auth' | 'session'>
+    > = {},
   ): Promise<string> {
     const html = await this.render(viewName, props, contextOptions);
     return extractFragment(html, fragmentName);
@@ -157,7 +165,9 @@ export class ViewRenderer {
     fragmentNames: string[],
     viewName: string,
     props: P,
-    contextOptions: Partial<Pick<RenderContextStore, 'csrf' | 'errors'>> = {},
+    contextOptions: Partial<
+      Pick<RenderContextStore, 'csrf' | 'errors' | 'errorBags' | 'auth' | 'session'>
+    > = {},
   ): Promise<string> {
     const html = await this.render(viewName, props, contextOptions);
     return extractFragments(html, fragmentNames);
@@ -172,11 +182,31 @@ export class ViewRenderer {
     fragmentName: string,
     viewName: string,
     props: P,
-    contextOptions: Partial<Pick<RenderContextStore, 'csrf' | 'errors'>> = {},
+    contextOptions: Partial<
+      Pick<RenderContextStore, 'csrf' | 'errors' | 'errorBags' | 'auth' | 'session'>
+    > = {},
   ): Promise<string> {
     const html = await this.render(viewName, props, contextOptions);
     if (!condition) return html;
     return extractFragment(html, fragmentName);
+  }
+
+  /**
+   * Renders only the named fragments (concatenated) when `condition` is
+   * true; otherwise renders the full view.
+   */
+  async renderFragmentsIf<P extends Record<string, unknown>>(
+    condition: boolean,
+    fragmentNames: string[],
+    viewName: string,
+    props: P,
+    contextOptions: Partial<
+      Pick<RenderContextStore, 'csrf' | 'errors' | 'errorBags' | 'auth' | 'session'>
+    > = {},
+  ): Promise<string> {
+    const html = await this.render(viewName, props, contextOptions);
+    if (!condition) return html;
+    return extractFragments(html, fragmentNames);
   }
 
   // ── Inline rendering ───────────────────────────────────────────────
@@ -197,7 +227,9 @@ export class ViewRenderer {
   async renderString<P extends Record<string, unknown>>(
     template: string,
     props: P,
-    contextOptions: Partial<Pick<RenderContextStore, 'csrf' | 'errors'>> = {},
+    contextOptions: Partial<
+      Pick<RenderContextStore, 'csrf' | 'errors' | 'errorBags' | 'auth' | 'session'>
+    > = {},
   ): Promise<string> {
     const mod = this.#compileInlineString<P>(template);
     if (typeof mod.default !== 'function') {
