@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/channels",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "FaberJS real-time WebSocket channels — first-class pub/sub, presence, and broadcasting",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

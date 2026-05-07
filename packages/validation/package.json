@@ -1,6 +1,6 @@
 {
   "name": "@faber-js/validation",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "FaberJS request validation with fluent rules, FormRequest, and auto-error responses",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
